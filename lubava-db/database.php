@@ -68,7 +68,7 @@ echo <<<EOT
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>$g_PageTitles[$pageid]</title>
-    <link rel="stylesheet" type="text/css" href="database/css/lubava.white.css"/>
+    <link rel="stylesheet" type="text/css" href="$static_path/css/lubava.white.css"/>
 </head>
 <body bgcolor="#FFFFFF" link="#000000" alink="#000000" vlink="#000000">
 EOT;

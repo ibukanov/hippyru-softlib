@@ -85,10 +85,10 @@ EOT;
                             echo <<<EOT
 <td class="aircell">
 <a href="$url_me?mode=delete&idx=$r_id&pageid=$pageid" class="noneline">
-        <img width="16" height="16" border="0" src="database/png/16x16.remove.png"/>
+        <img width="16" height="16" border="0" src="$static_path/png/16x16.remove.png"/>
 </a>
 <a href="$url_me?mode=edit&idx=$r_id&pageid=$pageid" class="noneline">
-        <img width="16" height="16" border="0" src="database/png/16x16.edit.png"/>
+        <img width="16" height="16" border="0" src="$static_path/png/16x16.edit.png"/>
 </a>
 </td>
 EOT;

@@ -10,6 +10,8 @@ call_user_func(function() {
     $GLOBALS['mysql_database'] = $config['database'];
 });
 
+$static_path = "/db-st";
+
 // Путь туда, где должны лежать файлы
 $url_files         = array (
         "./database/data/texts/",
