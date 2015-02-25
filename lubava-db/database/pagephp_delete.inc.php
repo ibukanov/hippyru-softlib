@@ -4,60 +4,80 @@ if (!defined ("INCLUDE_LEGAL")) die ("File execution is prohibited.");
 //
 // Delete specific text
 //
-    $bSuccess = FALSE;
-    if (isset ($_GET["idx"])) {
-        // Create the query
-        $r_id = filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
 
-        if (is_numeric ($r_id)) {
-            if ($db = mysql_connect ($mysql_host, $mysql_user, $mysql_password)) {
-                mysql_set_charset("utf8");
-                $query = "SELECT sender, contents FROM $mysql_database.$mysql_table WHERE id=$r_id";
+function do_delete() {
+    global $mysql_table;
+    
+    $r_id = filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
+    if (!is_int($r_id)) {
+        err("idx is not given or is not an integer");
+        return;
+    }
 
-                if ($result = mysql_query ($query)) {
-                    if (mysql_numrows ($result)) {
-                        $bSuccess = TRUE;
+    $found = false;
+    $r_path = null;
+    $r_sender = null;
 
-                        // Only owner or superuser
-                        // can delete it.
-                        if ($strUserName == mysql_result ($result, 0, "sender") || isSuperuser ()) {
+    $db = db_connect();
+    $stmt = db_prepare($db, "SELECT sender, contents FROM $mysql_table WHERE id=?");
+    db_bind_param($stmt, "i", $r_id);
+    db_execute($stmt);
+    $result = db_get_result($stmt);
+    $row = db_fetch_assoc($result);
+    if (is_null($row)) {
+        if (is_ok()) {
+            echo "<p align='center' class='style2'><b>Требуемая запись не найдена.</b></p><br>";
+        }
+    } else {
+        $found = true;
+        $r_sender = $row['sender'];
+        $r_path = $row['contents'];
+    }
+    db_free($result);
+    db_close($stmt);
 
-                            if (!isset ($_GET["confirmed"])) {
-                                // Ask for confirmation.
-                                echo <<<EOT
-<p align='center' class='style2'><b>Вы действительно хотите удалить эту запись?</b><br><br>
-<a class="a_buttonlike" href="$url_me?mode=delete&idx=$r_id&confirmed=1&pageid=$pageid">Да</a>
-<a class="a_buttonlike" href="$url_me?mode=list&pageid=$pageid">Нет</a>
-</p><br><br>
+    if ($found) {
+        // Only owner or superuser
+        // can delete it.
+        if ($strUserName == $r_sender || isSuperuser ()) {
+            if (!isset($_POST["confirmed"])) {
+                // Ask for confirmation.
+                echo <<<EOT
+<div align='center' class='style2' style='text-align: center'>
+<b>Вы действительно хотите удалить эту запись?</b><br><br>
+<form style='display: inline' method='POST'>
+<button type='submit' name='confirmed' value='1'>Да</button>
+</form>
+<form style='display: inline' action='$url_me' method='get'>
+<input type='hidden' name='mode' value='list'>
+<input type='hidden' name='pageid' value='$pageid'>
+<button type='submit'>Нет</button>
+</form>
+</div>
+<br><br>
 EOT;
-                            } else {
-                                // Operation is confirmed.
-
-                                $query = "DELETE FROM $mysql_database.$mysql_table WHERE id = $r_id";
-    
-                                // Delete refernced file
-                                unlink ($_SERVER['DOCUMENT_ROOT'] .  "/" . mysql_result ($result, 0, "contents"));
-    
-                                if (!mysql_query ($query)) {
-                                    $bSuccess = FALSE;
-                                } else {
-                                    echo "<p align='center' class='style2'><b>Запись благополучно удалена.</b></p><br>";
-                                }
-                            }
-                        } else {
-                            echo "<p align='center' class='style2'><b>У вас нет прав на удаление данной записи.</b></p><br>";
-                        }
-                    }
+            } else {
+                // Operation is confirmed.
+                $stmt = db_prepare($db, "DELETE FROM $mysql_table WHERE id=?");
+                db_bind_param($stmt, "i", $r_id);
+                db_execute($stmt);
+                if (is_ok() && !is_null($r_path)) {
+                    unlink ($_SERVER['DOCUMENT_ROOT'] .  "/" . $r_path);
                 }
-
-                mysql_close ($db);
+            
+                if (is_ok()) {
+                    echo "<p align='center' class='style2'><b>Запись благополучно удалена.</b></p><br>";
+                }
             }
+        } else {
+            echo "<p align='center' class='style2'><b>У вас нет прав на удаление данной записи.</b></p><br>";
         }
     }
+    
+    db_close($db);
+}
 
-    if (!$bSuccess) {
-        echo "<p align='center' class='style2'><b>Требуемая запись не найдена.</b></p><br>";
-    }
+do_delete();
 
-    echo $strBackUrl_1;
+echo $strBackUrl_1;
 ?>

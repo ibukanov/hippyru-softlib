@@ -27,7 +27,7 @@ if ($mode == "edit" && $_GET["idx"]) {
         $query = "SELECT id, pageid, author, sender, year, title, contents, class FROM $mysql_database.$mysql_table WHERE id = $r_id";
 
         if ($db = mysql_connect ($mysql_host, $mysql_user, $mysql_password)) {
-		mysql_set_charset("utf8");
+            mysql_set_charset("utf8");
             if ($result = mysql_query ($query)) {
                 if (mysql_numrows ($result)) {
                     $r_id       = mysql_result ($result, 0, "id");

@@ -2,7 +2,7 @@
     define ("INCLUDE_LEGAL", TRUE);
 
     require_once "database/defines.inc.php";
-    require_once "database/utils.filter.inc.php";
+    require_once "database/utils.php";
     require_once "database/req_type.inc.php";
     require_once "database/user_establish.inc.php";
     require_once "database/user_login.inc.php";
