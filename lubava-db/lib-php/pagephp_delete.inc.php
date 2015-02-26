@@ -18,14 +18,13 @@ function do_delete() {
     $r_path = null;
     $r_sender = null;
 
-    $db = db_connect();
-    $stmt = db_prepare($db, "SELECT sender, contents FROM $mysql_table WHERE id=?");
+    $stmt = db_prepare("SELECT sender, contents FROM $mysql_table WHERE id=?");
     db_bind_param($stmt, "i", $r_id);
     db_execute($stmt);
     $result = db_get_result($stmt);
     $row = db_fetch_assoc($result);
     if (is_null($row)) {
-        if (is_ok()) {
+        if (db_ok()) {
             echo "<p align='center' class='style2'><b>Требуемая запись не найдена.</b></p><br>";
         }
     } else {
@@ -58,14 +57,13 @@ function do_delete() {
 EOT;
             } else {
                 // Operation is confirmed.
-                $stmt = db_prepare($db, "DELETE FROM $mysql_table WHERE id=?");
+                $stmt = db_prepare("DELETE FROM $mysql_table WHERE id=?");
                 db_bind_param($stmt, "i", $r_id);
                 db_execute($stmt);
-                if (is_ok() && !is_null($r_path)) {
-                    unlink ($_SERVER['DOCUMENT_ROOT'] .  "/" . $r_path);
-                }
-            
-                if (is_ok()) {
+                if (db_affected_rows($stmt) === 1) {
+                    if (isset($r_path)) {
+                        unlink ($_SERVER['DOCUMENT_ROOT'] .  "/" . $r_path);
+                    }
                     echo "<p align='center' class='style2'><b>Запись благополучно удалена.</b></p><br>";
                 }
             }
@@ -73,8 +71,6 @@ EOT;
             echo "<p align='center' class='style2'><b>У вас нет прав на удаление данной записи.</b></p><br>";
         }
     }
-    
-    db_close($db);
 }
 
 do_delete();

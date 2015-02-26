@@ -1,5 +1,4 @@
 <?php
-if (!defined ("INCLUDE_LEGAL")) die ("File execution is prohibited.");
 /** * contains various definitions */
 
 call_user_func(function() {
@@ -10,7 +9,7 @@ call_user_func(function() {
     $GLOBALS['mysql_database'] = $config['database'];
 });
 
-$static_path = "/db-st";
+$static_path = "/db-static";
 
 // Путь туда, где должны лежать файлы
 $url_files         = array (
@@ -20,15 +19,7 @@ $url_files         = array (
 
 $mysql_table        = "texts";
 $mysql_table_users  = "txtusers";         
-//
-$mysql_table_texts  = "storage_texts";    
-//
-$mysql_table_lyrics = "storage_lyrics";   
-//
-$mysql_table_songs  = "storage_songs";    
-//
-#$mysql_table_users  = "storage_users";    
-$mysql_table_users  = "txtusers";    
+
 
 $url_me = $_SERVER['SCRIPT_NAME'];    
 // Заголовки страниц

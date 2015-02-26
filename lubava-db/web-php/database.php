@@ -1,14 +1,22 @@
 <?php
     define ("INCLUDE_LEGAL", TRUE);
 
-    require_once "database/defines.inc.php";
-    require_once "database/utils.php";
-    require_once "database/req_type.inc.php";
-    require_once "database/user_establish.inc.php";
-    require_once "database/user_login.inc.php";
-    require_once "database/form_loginout.inc.php";
-?>
-<?php
+    require_once "../lib-php/defines.inc.php";
+    require_once "../lib-php/utils.php";
+    require_once "../lib-php/session.php";
+    require_once "../lib-php/user_establish.inc.php";
+    require_once "../lib-php/form_loginout.inc.php";
+
+if (isset  ($_GET["mode"])) {
+    $mode = filter_input (INPUT_GET, "mode", FILTER_SANITIZE_STRING);
+} else if (isset  ($_POST["epost"])) {
+    $mode = filter_input (INPUT_POST, "epost", FILTER_SANITIZE_STRING);
+} else {
+    $mode = "title";
+}
+
+check_login_cookie();
+
 //
 // Determine the page to display
 //
@@ -52,21 +60,18 @@ if (isset($_POST['mode']) && $_POST['mode'] == 'login') {
 //
 // Log out.
 //
-    if (user_logout ()) {
-        header ("Location: " . $url_me . "?pageid=$pageid");
-    }
-
-    $mode = "skip";
+    user_logout ();
+    header ("Location: " . $url_me . "?pageid=$pageid");
+    exit();
 }
     
 /************ DISPLAY THE HEADER **************/
 
 echo <<<EOT
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html>
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta charset="utf-8"/>
     <title>$g_PageTitles[$pageid]</title>
     <link rel="stylesheet" type="text/css" href="$static_path/css/lubava.white.css"/>
 </head>
@@ -97,7 +102,7 @@ if ($mode == "title") {
     if ($strUserName == "guest") {
         // For guests there is no
         // title page. Redirect them to the list.
-        require_once ("database/pagephp_list.inc.php");
+        require_once ("../lib-php/pagephp_list.inc.php");
 
     } else {
         echo "<p align='center' class='style2'><a href='${url_me}?mode=ask_file&pageid=$pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$pageid]."</a></p>";
@@ -110,7 +115,7 @@ if ($mode == "title") {
 // Display the list of
 // uploaded files.
 //
-    require_once ("database/pagephp_list.inc.php");
+    require_once ("../lib-php/pagephp_list.inc.php");
 
 } else if ($mode == "ask_file" ||
            $mode == "edit"
@@ -118,33 +123,25 @@ if ($mode == "title") {
 //
 // Form for text uploading.
 //
-    require_once ("database/pagephp_edit.inc.php");
+    require_once ("../lib-php/pagephp_edit.inc.php");
 
 } else if ($mode == 'delete') {
 //
 // Delete specific text
 //
-    require_once ("database/pagephp_delete.inc.php");
+    require_once ("../lib-php/pagephp_delete.inc.php");
 
 } else if ($mode == 'showtext') {
 //
 // Show specific text
 //
-    require_once ("database/pagephp_show.inc.php");
+    require_once ("../lib-php/pagephp_show.inc.php");
 
 } else if ($mode == 'upload') {
 //
 // Upload the file on server.
 //
-    require_once ("database/pagephp_upload.inc.php");
-/*
-} else if ($mode == "install") {
-//
-// Install the script.
-// This creates the tables in database.
-//
-    require_once ("database/pagephp_install.inc.php");
-*/
+    require_once ("../lib-php/pagephp_upload.inc.php");
 } else if ($mode == "skip") {
 } else {
 //
