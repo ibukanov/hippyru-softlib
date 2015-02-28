@@ -4,118 +4,120 @@
 //
 // Upload the file on server.
 //
-if (true) {
+
+$bSuccess = true;
+
+if (!isWritePermitted()) {
+    echo "<center><font class='style2'>";
+    echo "Вы не имеете прав загружать файлы на сервер.";
+    echo "</font></center>";
+} else if (!check_post_key()) {
+    echo "<center><font class='style2'>";
+    echo "Загрузка невозможна. Проверьте, включен ли JavaScript в Вашем браузере.";
+    echo "</font></center>";
+} else {
+
     if (isset ($_POST["title"])  &&
         isset ($_POST["year"])   &&
         isset ($_POST["author"]) &&
         isset ($_POST["contents"])
         ) {
-        $r_class = "";
 
-        // Fetch group from the
-        // edit box, if any
-        if ($r_class == "") {
-            if (isset ($_POST["group_force"]))
-                if ($_POST["group_force"] != "")
-                    $r_class = filter_input (INPUT_POST, "group_force", FILTER_SANITIZE_STRING);
+        $r_pageid = (int) filter_input(INPUT_POST, "pageid", FILTER_VALIDATE_INT);
+
+        $r_class = filter_input(INPUT_POST, "group_force", FILTER_SANITIZE_STRING);
+        if (!$r_class) {
+            $r_class = filter_input(INPUT_POST, "group", FILTER_SANITIZE_STRING);
+            if (!$r_class) {
+                $r_class = $g_PageTitles[$r_pageid];
+            }
         }
 
-        // Fetch group from
-        // menu then
-        if ($r_class == "") {
-            if (isset ($_POST["group"]))
-                if ($_POST["group"] != "")
-                    $r_class = filter_input (INPUT_POST, "group", FILTER_SANITIZE_STRING);
+        $r_title = filter_input(INPUT_POST, "title",  FILTER_SANITIZE_STRING);
+        if (!$r_title) {
+            $r_title = "Без названия";
         }
 
-        $r_title    = filter_input (INPUT_POST, "title",  FILTER_SANITIZE_STRING);
-        $r_year     = filter_input (INPUT_POST, "year",   FILTER_SANITIZE_STRING);
-        $r_author   = filter_input (INPUT_POST, "author", FILTER_SANITIZE_STRING);
+        $r_year = filter_input(INPUT_POST, "year", FILTER_VALIDATE_INT);
+        if (!$r_year) {
+            $r_year = (int) date("Y");
+        }
+        
+        $r_author = filter_input (INPUT_POST, "author", FILTER_SANITIZE_STRING);
+        if (!$r_author) {
+            $r_group = $strUserName_Full;
+        }
+
         $r_contents = filter_input (INPUT_POST, "contents");
 
-        if (get_magic_quotes_gpc() == 1) {
-            $r_contents = stripslashes ($r_contents);
-        }
-
         $r_stamp  = time ();
-        $query    = "";
-        $r_id     = 0;
-        $r_pageid = $pageid;
 
-        if (isset ($_POST["id"])) {
-            $r_id = (int)filter_input (INPUT_POST, "id", FILTER_VALIDATE_INT);
-        }
+        $r_id = (int) filter_input (INPUT_POST, "id", FILTER_VALIDATE_INT);
+        
+        $path = get_data_file_path($r_id);
 
-        // Determine the page id.
-        if (isset ($_POST["pageid"])) {
-            $r_pageid = (int)filter_input (INPUT_POST, "pageid", FILTER_VALIDATE_INT);
-        }
+        if ($r_id != 0) {
+            $stmt = db_prepare("UPDATE $mysql_table " .
+                               "SET class=?, title=?, author=?, year=? WHERE id=?");
+            db_bind_param5($stmt, "sssii", $r_class, $r_title, $r_author, $r_year, $r_id);
+            db_execute($stmt);
 
-        // Validate fields
-        if ($r_title  == "") $r_title = "Без названия";
-        if ($r_year   == "") $r_year  = date ("Y", time ());
-        if ($r_class  == "") $r_class = $g_PageTitles[$r_pageid];
-        if ($r_author == "") $r_group = $strUserName_Full;
-
-        $bSuccess = FALSE;
-
-        if ($db = mysql_connect ($mysql_host, $mysql_user, $mysql_password)) {
-            mysql_set_charset("utf8");
-            if (is_numeric ($r_id) && $r_id != 0) {
-                // Now we need to
-                // update the record
-
-                $r_path = $url_files[$r_pageid] . "text-" . $r_id . ".htmlraw";
-
-                // Create the query
-                $query = "UPDATE $mysql_database.$mysql_table SET class='$r_class', title='$r_title', author='$r_author', year='$r_year', contents='$r_path' WHERE id=$r_id";
-            } else {
-                // Now we need to add
-                // the record to database
-
-                if ($result = mysql_query  ("SELECT MAX(id) AS last FROM $mysql_database.$mysql_table")) {
-                    $r_id   = mysql_result ($result, 0, "last") + 1;
-                    $r_path = $url_files[$r_pageid] . "text-" . $r_id . ".htmlraw";
-
-                    // Create the query
-                    $query = "INSERT INTO $mysql_database.$mysql_table VALUES (null, '$r_class', '$r_title', '$r_author', '$strUserName', '$r_year', '$r_stamp', '$r_path', '$r_pageid')";
+            $exists = (db_affected_rows($stmt) === 1);
+            if (!$exists && db_ok()) {
+                // affected rows is zero if the new values matches old ones
+                $stmt = db_prepare("SELECT id FROM $mysql_table where id=?");
+                db_bind_param($stmt, "i", $r_id);
+                db_execute($stmt);
+                db_bind_result($stmt, $r_old_id);
+                db_fetch($stmt);
+                if ($r_old_id === $r_id) {
+                    $exists = true;
                 }
             }
+            
+            if ($exists) {
+                if (strlen($r_contents) === file_put_contents($path, $r_contents)) {
+                    $bSuccess = true;
+                } else {
+                    log_err('failed to write to %s %d bytes', $path, strlen($r_contents));
+                }
 
-            if ($query != "") {
-                if (mysql_query ($query)) {
-                    $r_path = $_SERVER['DOCUMENT_ROOT'] . "/" . $r_path;
-                    if ($file = fopen ("$r_path", "wb")) {
-                        fwrite ($file, $r_contents);
-                        fclose ($file);
-                        //chmod ("$r_path", 666);
+            } elseif (db_ok()) {
+                echo "<p align='center' class='style2'><b>Требуемая запись не найдена.</b></p><br>";
+            }
+            db_close($stmt);
+        } else {
+            // Add the record to database
+            $stmt = db_prepare("INSERT INTO $mysql_table " .
+                               "VALUES (null, ?, ?, ?, ?, ?, ?, '', ?)");
+            
+            db_bind_param7($stmt, 'ssssiii', $r_class, $r_title, $r_author, $strUserName,
+                           $r_year, $r_stamp, $r_pageid);
+            db_execute($stmt);
+            $r_id = db_insert_id();
+            db_close($stmt);
+            if ($r_id) {
+                if (strlen($r_contents) === file_put_contents($path, $r_contents)) {
+                    $bSuccess = true;
+                } else {
+                    log_err('failed to write to %s %d bytes', $path, strlen($r_contents));
 
-                        $bSuccess = TRUE;
-                    } else {
-                        // Rollback (!!!)
-                        // mysql_query ("DELETE FROM $mysql_database.$mysql_table WHERE id = (SELECT MAX(id) FROM $mysql_database.$mysql_table)");
-                    } 
+                    // Remove just inserted table
+                    $stmt = db_prepare("DELETE FROM $mysql_table WHERE id = ?");
+                    db_bind_param($stmt, "i", $r_id);
+                    db_execute($stmt);
+                    db_close($stmt);
                 }
             }
-
-            mysql_close ($db);
         }
     }
-
+    
     if ($bSuccess) {
         echo "<center><font class='style2'>";
         echo "Файл благополучно загружен в базу данных<br><br>";
         echo "<a href='${url_me}?mode=ask_file&pageid=$r_pageid' class='noneline'>Добавить ещё</a>";
         echo "</font></center><br>";
-    } else {
-        echo "<center><font class='style2'>";
-        echo "Ошибка при загрузке файла. Попробуйте снова?";
-        echo "</font></center>";
     }
-} else {
-    echo "<center><font class='style2'>";
-    echo "Вы не имеете права загружать файлы на сервер.";
-    echo "</font></center>";
 }
 
 echo "<hr>" . $strBackUrl;

@@ -1,64 +1,52 @@
 <?php
-if (!defined ("INCLUDE_LEGAL")) die ("File execution is prohibited.");
 
 //
 // Form for text uploading.
 //
-    $CurYear = date ("Y", time ());
+$CurYear = date ("Y", time ());
 
-//    if (!isset ($_GET["table"]))      die ("Неверное обращение к скрипту.");
-//    $r_table     = filter_input (INPUT_GET, "table", FILTER_VALIDATE_INT);
+$r_class     = $g_PageTitles[$pageid];
+$r_year      = $CurYear;
+$r_author    = $strUserName_Full;
+$r_sender    = "";
+$r_title     = "";
+$r_contents  = "";
+$r_pageid    = $pageid;
+$butTitle    = "Загрузить";
 
-    $r_group     = $g_PageTitles[$pageid];
-    $r_year      = $CurYear;
-    $r_author    = $strUserName_Full;
-    $r_sender    = "";
-    $r_title     = "";
-    $r_contents  = "";
-    $r_id        = 0;
-    $r_pageid    = $pageid;
-    $butTitle    = "Загрузить";
+$r_id = (int )filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
 
-if ($mode == "edit" && $_GET["idx"]) {
-    if (is_numeric ($_GET["idx"])) {
-        $r_id = filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
+if ($mode == "edit" && $r_id) {
 
-        // Create the query
-        $query = "SELECT id, pageid, author, sender, year, title, contents, class FROM $mysql_database.$mysql_table WHERE id = $r_id";
+    $stmt = db_prepare("SELECT pageid, author, year, title, sender, class FROM $mysql_table WHERE id = ?");
+    db_bind_param($stmt, "i", $r_id);
+    db_execute($stmt);
+    db_bind_result6($stmt, $r_pageid, $r_author, $r_year, $r_title, $r_sender, $r_class);
+    db_fetch($stmt);
+    db_close($stmt);
 
-        if ($db = mysql_connect ($mysql_host, $mysql_user, $mysql_password)) {
-            mysql_set_charset("utf8");
-            if ($result = mysql_query ($query)) {
-                if (mysql_numrows ($result)) {
-                    $r_id       = mysql_result ($result, 0, "id");
-                    $r_pageid   = mysql_result ($result, 0, "pageid");
-                    $r_year     = mysql_result ($result, 0, "year");
-                    $r_author   = mysql_result ($result, 0, "author");
-                    $r_sender   = mysql_result ($result, 0, "sender");
-                    $r_title    = mysql_result ($result, 0, "title");
-                    $r_file     = mysql_result ($result, 0, "contents");
-                    $r_group    = mysql_result ($result, 0, "class");
-
-		    $r_file = $_SERVER['DOCUMENT_ROOT'] . "/" . $r_file;
-
-		    if ($file = fopen ($r_file, "rb")) {
-                        $r_contents = fread ($file, filesize ($r_file));
-                        fclose ($file);
-                    } else {
-                        $r_contents = $ERR_not_found;
-                    }
-
-                    $butTitle   = "Сохранить изменения";
-                }
-            }
-
-            mysql_close ($db);
+    if (db_ok()) {
+        $r_contents = file_get_contents(get_data_file_path($r_id));
+        if ($r_contents === false) {
+            $r_contents = $ERR_not_found;
         }
     }
 }
 
 if (isWritePermitted () && ($r_sender == $strUserName || isSuperuser () || $r_sender == "")) {
-        echo <<<EOT
+
+    $stmt = db_prepare("SELECT DISTINCT class AS sel_gr FROM $mysql_table WHERE pageid=?");
+    db_bind_param($stmt, "i", $r_pageid);
+    db_execute($stmt);
+    db_bind_result($stmt, $sel_gr);
+
+    $groups = array();
+    while (db_fetch($stmt)) {
+        array_push($groups, $sel_gr);
+    }
+    db_close($stmt);
+
+    echo <<<EOT
 <!-- Scripts section -->
 <script type="text/javascript">
 <!--
@@ -70,7 +58,7 @@ if (isWritePermitted () && ($r_sender == $strUserName || isSuperuser () || $r_se
 <script type="text/javascript" src="scripts/edit_check.js" charset="utf-8"></script>
 <script type="text/javascript" src="scripts/edit_xinha.js" charset="utf-8"></script>
 
-    <form enctype="multipart/form-data" action="$url_me" method="post" onsubmit="return check_fields(this);">
+    <form enctype="multipart/form-data" action="$url_me" method="post" onsubmit="return check_fields(this) && set_post_key(this);">
     <input type="hidden" name="epost" value="upload" />
     <input type="hidden" name="id" value="$r_id" />
     <input type="hidden" name="pageid" value="$r_pageid" />
@@ -83,22 +71,11 @@ EOT;
         echo "\n<SELECT size='1' name='group'>\n";
         // echo "<OPTION value=''></OPTION>\n";
 
-        if ($db = mysql_connect ($mysql_host, $mysql_user, $mysql_password)) {
-            mysql_set_charset("utf8");
-            if ($result = mysql_query ("SELECT DISTINCT class AS sel_gr FROM $mysql_database.$mysql_table WHERE pageid=$r_pageid")) {
-// ORDER BY (SELECT COUNT(id) FROM $mysql_database.$mysql_table WHERE class=sel_gr) DESC
-                if ($n = mysql_numrows ($result)) {
-                    for ($i = 0; $i < $n; $i++) {
-                        $sel_gr = mysql_result ($result, $i, "sel_gr");
-                        if ($sel_gr == $r_group)
-                            echo "<OPTION SELECTED value='$sel_gr'>$sel_gr</OPTION>\n";
-                        else
-                            echo "<OPTION value='$sel_gr'>$sel_gr</OPTION>\n";
-                    }
-                }
-            }
-            echo mysql_error ();
-            mysql_close ($db);
+        foreach ($groups as $sel_gr) {
+            if ($sel_gr == $r_class)
+                echo "<OPTION SELECTED value='$sel_gr'>$sel_gr</OPTION>\n";
+            else
+                echo "<OPTION value='$sel_gr'>$sel_gr</OPTION>\n";
         }
 
         echo "</SELECT>\n";
@@ -108,7 +85,7 @@ EOT;
     <td align="left">
         <font class='style2'>Или введите новую</font>
     </td><td align="left">
-        <input type="text" size="50" name="group_force" value=""/><!--$r_group"-->
+        <input type="text" size="50" name="group_force" value=""/><!--$r_class"-->
     </td>
     </tr>
     <tr><td></td><td>&nbsp;</td></tr>

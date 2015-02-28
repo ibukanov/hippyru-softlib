@@ -44,12 +44,12 @@ function get_user_info($login) {
         db_bind_param($stmt, "s", $login);
         db_execute($stmt);
         $result = db_get_result($stmt);
-        $row = db_fetch_assoc($result);
+        $row = db_fetch_row($result);
         db_free($result);
         db_close($stmt);
     }
     if ($row)
-        return (object) $row;
+        return $row;
 
     return (object) ['name' => null,
                      'passhash' => null,

@@ -1,63 +1,54 @@
 <?php
-if (!defined ("INCLUDE_LEGAL")) die ("File execution is prohibited.");
 
 //
 // Show specific text
 //
-    $bSuccess = FALSE;
-    if (isset ($_GET["idx"]))
-        // Create the query
-        $r_id  = filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
+$bSuccess = FALSE;
 
-        if (is_numeric ($r_id)) {
-            $query = "SELECT id, author, year, title, contents, sender, uploaded FROM $mysql_database.$mysql_table WHERE id = $r_id";
+$r_id = (int) filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
 
-            if ($db = mysql_connect ($mysql_host, $mysql_user, $mysql_password)) {
-                mysql_set_charset("utf8");
-                if ($result = mysql_query ($query)) {
-                    if (mysql_numrows ($result)) {
-                    $bSuccess = TRUE;
+if ($r_id) {
+    $stmt = db_prepare("SELECT author, year, title, sender, uploaded FROM $mysql_table WHERE id = ?");
+    db_bind_param($stmt, "i", $r_id);
+    db_execute($stmt);
+    $result = db_get_result($stmt);
+    $row = db_fetch_row($result);
+    db_free($result);
+    db_close($stmt);
+    
 
-                    $CurYear = date ("Y", time ());
+    if ($row) {
+        $bSuccess = TRUE;
 
-                    $r_id       = mysql_result ($result, 0, "id");
-                    $r_year     = mysql_result ($result, 0, "year");
-                    $r_author   = mysql_result ($result, 0, "author");
-                    $r_title    = mysql_result ($result, 0, "title");
-                    $r_file     = mysql_result ($result, 0, "contents");
-                    $r_sender   = mysql_result ($result, 0, "sender");
-                    $r_stamp    = date ("d M Y", mysql_result ($result, 0, "uploaded"));
+        $CurYear = date ("Y", time ());
 
-		    $r_file = $_SERVER['DOCUMENT_ROOT'] . "/" . $r_file;
-		    $r_contents = $ERR_not_found;
+        $r_author = $row->author;
+        $r_year = $row->year;
+        $r_title = $row->title;
+        $r_sender = $row->sender;
+        $r_stamp = date("d M Y", $row->uploaded);
 
-                    if ($file = fopen ($r_file, "rb")) {
-                        $r_contents = fread ($file, filesize ($r_file));
-                        fclose ($file);
-                    }
+        $r_contents = file_get_contents(get_data_file_path($r_id));
+        if ($r_contents === false) {
+            $r_contents = $ERR_not_found;
+        }
 
-                    // Create year-span
-                    if ($CurYear != $r_year) {
-                        $r_year = "$r_year-$CurYear";
-                    }
+        // Create year-span
+        if ($CurYear != $r_year) {
+            $r_year = "$r_year-$CurYear";
+        }
 
-                    // $r_contents = str_replace ("\n", "<br>", $r_contents);
-
-                    echo "<p class='style2'><b>$r_author</b></p>";
-                    echo "<p class='style2'><b><i>&nbsp;&nbsp;&nbsp;&nbsp;$r_title</i></b></p>";
-                    echo "<div class='style2_pad'>$r_contents</div><br>";
-                    // echo "<p class='style2'><font size='-1'>(c) $r_author $r_year</font></p>";
-                    // echo "<p class='style2'><font size='-3'>Uploaded by $r_sender at $r_stamp</font></p>";
-                    }
-                }
-
-                mysql_close ($db);
-            }
+        echo "<p class='style2'><b>$r_author</b></p>";
+        echo "<p class='style2'><b><i>&nbsp;&nbsp;&nbsp;&nbsp;$r_title</i></b></p>";
+        echo "<div class='style2_pad'>$r_contents</div><br>";
+        // echo "<p class='style2'><font size='-1'>(c) $r_author $r_year</font></p>";
+        // echo "<p class='style2'><font size='-3'>Uploaded by $r_sender at $r_stamp</font></p>";
     }
+}
 
-    if (!$bSuccess) {
-        echo "<p align='center' class='style2'><b>Запрашиваемый вами файл не найден</b></p><br/>";
-    }
+if (!$bSuccess) {
+    echo "<p align='center' class='style2'><b>Запрашиваемый вами файл не найден</b></p><br/>";
+}
 
-    echo $strBackUrl_1;
+echo $strBackUrl_1;
 ?>

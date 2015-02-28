@@ -15,6 +15,22 @@ if (isset  ($_GET["mode"])) {
     $mode = "title";
 }
 
+// Remove pkey cookie before we write any HTML 
+$saved_pkey_cookie = null;
+if (isset($_COOKIE['pkey'])) {
+    $saved_pkey_cookie = $_COOKIE['pkey'];
+    if (strlen($saved_pkey_cookie) < 8) {
+        # Require sufficiently long key
+        $saved_pkey_cookie = null;
+    }
+    setcookie('pkey', '', 1, '', '', true, false);
+}
+
+function check_post_key() {
+    global $saved_pkey_cookie;
+    return isset($_POST["pkey"]) && $_POST["pkey"] === $saved_pkey_cookie;
+}
+
 check_login_cookie();
 
 //
@@ -28,10 +44,15 @@ if (isset ($_POST["pageid"])) $pageid_s = $_POST["pageid"];
 if ($pageid_s != "") {
     if (is_numeric ($pageid_s)) {
         $pageid = (int)$pageid_s;
-        if ($pageid < 0 || $pageid >= count ($url_files)) {
+        if ($pageid < 0 || $pageid >= count($g_PageTitles)) {
             $pageid = 0;
         }
     }
+}
+
+function get_data_file_path($r_id) {
+    return sprintf('%s/database/data/texts/text-%d.htmlraw',
+                   $_SERVER['DOCUMENT_ROOT'], $r_id);
 }
 
 $strBackUrl   = "<p align='center' class='style2'><a href='".$url_me."?mode=title&pageid=$pageid' class='noneline'>Назад</a></p>";
@@ -73,7 +94,8 @@ echo <<<EOT
 <head>
     <meta charset="utf-8"/>
     <title>$g_PageTitles[$pageid]</title>
-    <link rel="stylesheet" type="text/css" href="$static_path/css/lubava.white.css"/>
+    <link rel="stylesheet" type="text/css" href="$static_path/css/lubava.white.css">
+    <script src="$static_path/js/lib.js"></script>
 </head>
 <body bgcolor="#FFFFFF" link="#000000" alink="#000000" vlink="#000000">
 EOT;

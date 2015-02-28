@@ -95,7 +95,7 @@ function parse_cookie_user($cookie) {
 function parse_cookie($cookie, $stored_hash, $hmac_secret) {
     $expiration = 0;
     do {
-        if (!cookie || !$stored_hash || !$hmac_secret)
+        if (!$cookie || !$stored_hash || !$hmac_secret)
             break;
         $last_separator = strrpos($cookie, '.');
         if ($last_separator === false || $last_separator + 1 + 43 != strlen($cookie))

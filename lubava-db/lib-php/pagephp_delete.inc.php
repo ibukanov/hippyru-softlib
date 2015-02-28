@@ -6,7 +6,7 @@ if (!defined ("INCLUDE_LEGAL")) die ("File execution is prohibited.");
 //
 
 function do_delete() {
-    global $mysql_table;
+    global $mysql_table, $saved_pkey_cookie, $strUserName, $url_me;
     
     $r_id = filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
     if (!is_int($r_id)) {
@@ -22,15 +22,15 @@ function do_delete() {
     db_bind_param($stmt, "i", $r_id);
     db_execute($stmt);
     $result = db_get_result($stmt);
-    $row = db_fetch_assoc($result);
+    $row = db_fetch_row($result);
     if (is_null($row)) {
         if (db_ok()) {
             echo "<p align='center' class='style2'><b>Требуемая запись не найдена.</b></p><br>";
         }
     } else {
         $found = true;
-        $r_sender = $row['sender'];
-        $r_path = $row['contents'];
+        $r_sender = $row->sender;
+        $r_path = $row->contents;
     }
     db_free($result);
     db_close($stmt);
@@ -44,7 +44,7 @@ function do_delete() {
                 echo <<<EOT
 <div align='center' class='style2' style='text-align: center'>
 <b>Вы действительно хотите удалить эту запись?</b><br><br>
-<form style='display: inline' method='POST'>
+<form style='display: inline' method='POST' onsubmit='return set_post_key(this)'>
 <button type='submit' name='confirmed' value='1'>Да</button>
 </form>
 <form style='display: inline' action='$url_me' method='get'>
@@ -57,14 +57,18 @@ function do_delete() {
 EOT;
             } else {
                 // Operation is confirmed.
-                $stmt = db_prepare("DELETE FROM $mysql_table WHERE id=?");
-                db_bind_param($stmt, "i", $r_id);
-                db_execute($stmt);
-                if (db_affected_rows($stmt) === 1) {
-                    if (isset($r_path)) {
-                        unlink ($_SERVER['DOCUMENT_ROOT'] .  "/" . $r_path);
+                if (!check_post_key()) {
+                    echo "<p align='center' class='style2'><b>Удаление невозможно. Проверьте, включен ли JavaScript в Вашем браузере.</b></p><br>";
+                } else {
+                    $stmt = db_prepare("DELETE FROM $mysql_table WHERE id=?");
+                    db_bind_param($stmt, "i", $r_id);
+                    db_execute($stmt);
+                    if (db_affected_rows($stmt) === 1) {
+                        if (isset($r_path)) {
+                            unlink ($_SERVER['DOCUMENT_ROOT'] .  "/" . $r_path);
+                        }
+                        echo "<p align='center' class='style2'><b>Запись благополучно удалена.</b></p><br>";
                     }
-                    echo "<p align='center' class='style2'><b>Запись благополучно удалена.</b></p><br>";
                 }
             }
         } else {
@@ -73,7 +77,11 @@ EOT;
     }
 }
 
-do_delete();
+if (!isWritePermitted()) {
+    echo "<p align='center' class='style2'><b>У вас нет прав на удаление данной записи.</b></p><br>";
+ } else {
+    do_delete();
+}
 
 echo $strBackUrl_1;
 ?>
