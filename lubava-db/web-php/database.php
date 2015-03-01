@@ -26,9 +26,45 @@ if (isset($_COOKIE['pkey'])) {
     setcookie('pkey', '', 1, '', '', true, false);
 }
 
-function check_post_key() {
-    global $saved_pkey_cookie;
-    return isset($_POST["pkey"]) && $_POST["pkey"] === $saved_pkey_cookie;
+function write_error_html($page_error) {
+    global $error_messages, $strBackUrl;
+    if (!is_int($page_error)) {
+        throw new Exception("page_error is not int: "+gettype($page_error));
+    }
+
+    $with_sys_details = false;
+    switch ($page_error) {
+      case PAGE_DB_ERR:
+        $msg = 'Ошибка базы данных';
+        $with_sys_details = true;
+        break;
+      case PAGE_RECORD_NOT_FOUND:
+        $msg = 'Требуемая запись не найдена';
+        break;
+      case PAGE_NO_WRITE_ACCESS:
+        $msg = 'Вы не имеете прав загружать или редактировать запись.';
+        break;
+      case PAGE_BAD_POST_KEY:
+        $msg = 'Загрузка невозможна. Проверьте, включен ли JavaScript в Вашем браузере.';
+        break;
+      case PAGE_BAD_INPUT:
+        $msg = 'Неверное значениe системного параметра';
+        $with_sys_details = true;
+        break;
+        
+      default:
+        throw new Exception("page_error is unknown: $page_error");
+    };
+
+    printf("<center><font class='style2'>%s</font></center>", $msg);
+    if ($with_sys_details && count($error_messages)) {
+        echo "<div class='syserr'>";
+        foreach ($error_messages as $err) {
+            printf("%s\n", htmlspecialchars($err, ENT_NOQUOTES));
+        }
+        echo "</div>";
+    }
+    printf("<hr>%s", $strBackUrl);
 }
 
 check_login_cookie();
@@ -89,7 +125,7 @@ echo <<<EOT
 <head>
     <meta charset="utf-8"/>
     <title>$g_PageTitles[$pageid]</title>
-    <link rel="stylesheet" type="text/css" href="$static_path/css/lubava.white.css">
+    <link rel="stylesheet" type="text/css" href="$static_path/css/db.css">
     <script src="$static_path/js/lib.js"></script>
 </head>
 <body bgcolor="#FFFFFF" link="#000000" alink="#000000" vlink="#000000">
@@ -134,20 +170,119 @@ if ($mode == "title") {
 //
     require_once ("../lib-php/pagephp_list.inc.php");
 
-} else if ($mode == "ask_file" ||
-           $mode == "edit"
-) {
+} elseif ($mode == "ask_file" || $mode == "edit") {
 //
 // Form for text uploading.
 //
-    require_once ("../lib-php/pagephp_edit.inc.php");
+    require_once ("../lib-php/edit.php");
+
+    $r = do_edit();
+    if (!is_object($r)) {
+        write_error_html($r);
+    } else {
+        $butTitle = $r->new_record ? "Загрузить" : "Сохранить";
+
+    echo <<<EOT
+<script type="text/javascript">
+    var _editor_url  = "/xinha_txtarea/";
+    var _editor_lang = "ru";
+</script>
+<script type="text/javascript" src="xinha_txtarea/XinhaCore.js"></script>
+<script type="text/javascript" src="$static_path/js/edit.js" charset="utf-8"></script>
+
+    <form enctype="multipart/form-data" action="$url_me" method="post" onsubmit="return check_fields(this) && set_post_key(this);">
+    <input type="hidden" name="epost" value="upload" />
+    <input type="hidden" name="id" value="$r->id" />
+    <input type="hidden" name="pageid" value="$r->pageid" />
+    <center>
+    <table>
+    <tr>
+        <td align="left"><font class='style2'>Выберите категорию</font></td>
+        <td align="left">
+EOT;
+        echo "\n<SELECT size='1' name='group'>\n";
+        // echo "<OPTION value=''></OPTION>\n";
+
+        foreach ($r->class_list as $c) {
+            if ($c == $r->class)
+                echo "<OPTION SELECTED value='$c'>$c</OPTION>\n";
+            else
+                echo "<OPTION value='$c'>$c</OPTION>\n";
+        }
+
+        echo "</SELECT>\n";
+        echo <<<EOT
+    </td>
+    </tr><tr>
+    <td align="left">
+        <font class='style2'>Или введите новую</font>
+    </td><td align="left">
+        <input type="text" size="50" name="group_force" value=""/><!--$r->class"-->
+    </td>
+    </tr>
+    <tr><td></td><td>&nbsp;</td></tr>
+    <tr>
+        <td align="left"><font class='style2'>Год</font></td>
+        <td align="left"><input type="text" size="30" name="year" value="$r->year"/></td>
+    </tr>
+    <tr>
+        <td align="left"><font class='style2'>Автор</font></td>
+        <td align="left"><input type="text" size="50" name="author" value="$r->author"/></td>
+    </tr>
+    <tr>
+        <td align="left"><font class='style2'>Название</font></td>
+        <td align="left"><input type="text" size="50" name="title" value="$r->title"/></td>
+    </tr>
+    <tr valign="top">
+        <td align="left"><font class='style2'>Текст</font></td>
+        <td align="left"><textarea id="teContent" name="content" rows="20" cols="60">$r->content</textarea></td>
+    </tr>
+    <tr>
+        <td></td>
+        <td align="left"><input type="submit" value="$butTitle" /></td>
+    </tr>
+    </table>
+    </center>
+</form>
+<hr>
+$strBackUrl
+EOT;
+    }
+
 
 } else if ($mode == 'delete') {
 //
 // Delete specific text
 //
-    require_once ("../lib-php/pagephp_delete.inc.php");
+    require_once ("../lib-php/edit.php");
 
+    $r = do_delete();
+    if (!is_object($r)) {
+        write_error_html($r);
+    } else {
+        $title = sprintf("&laquo;%s&raquo;", $r->title);
+        if (!$r->confirmed) {
+            // Ask for confirmation.
+            echo <<<EOT
+<div align='center' class='style2' style='text-align: center'>
+<b>Вы действительно хотите удалить запись $title?</b><br><br>
+<form style='display: inline' method='POST' onsubmit='return set_post_key(this)'>
+<button type='submit' name='confirmed' value='1'>Да</button>
+</form>
+<form style='display: inline' action='$url_me' method='get'>
+<input type='hidden' name='mode' value='list'>
+<input type='hidden' name='pageid' value='$pageid'>
+<button type='submit'>Нет</button>
+</form>
+</div>
+<br><br>
+EOT;
+        } else {
+            echo "<p align='center' class='style2'><b>Запись $title благополучно удалена.</b></p><br>";
+        }
+        echo $strBackUrl_1;
+    }
+    
 } else if ($mode == 'showtext') {
 //
 // Show specific text
@@ -158,7 +293,25 @@ if ($mode == "title") {
 //
 // Upload the file on server.
 //
-    require_once ("../lib-php/pagephp_upload.inc.php");
+    require_once ("../lib-php/edit.php");
+
+    $r = do_upload();
+    if (!is_object($r)) {
+        write_error_html($r);
+    } else {
+        $record_url = "${url_me}?mode=showtext&idx=$r->id&pageid=$r->pageid";
+        $add_more_url = "${url_me}?mode=ask_file&pageid=$r->pageid";
+        echo "<center><font class='style2'>";
+        if ($r->new_record) {
+            echo "<a href='$record_url'>Файл</a> благополучно загружен в базу данных<br><br>";
+        } else {
+            echo "<a href='$record_url'>Файл</a> благополучно изменен в базе данных<br><br>";
+        }
+        echo "<a href='$add_more_url' class='noneline'>Добавить ещё</a>";
+        echo "</font></center><br>";
+        echo "<hr>" . $strBackUrl;
+    }
+    
 } else if ($mode == "skip") {
 } else {
 //

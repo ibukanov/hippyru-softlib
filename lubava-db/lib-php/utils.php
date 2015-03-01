@@ -16,9 +16,6 @@ function log_err($msg) {
         $msg = vsprintf($msg, $args);
     }
     fprintf(get_std_err(), "ERROR: %s\n", $msg);
-    if (php_sapi_name() !== 'cli') {
-        echo "$msg\n";
-    }
     array_push($error_messages, $msg);
 }
 
@@ -63,9 +60,9 @@ function db_err($message) {
 }
 
 function db_failed() {
-    global $db_connection, $db_errors;
+    global $db_errors;
 
-    return !isset($db_connection) || $db_errors;
+    return !!$db_errors;
 }
 
 function db_ok() {
@@ -83,22 +80,27 @@ function db_connect() {
     
     $access_path = getenv('DB_ACCESS_FILE');
     if (!$access_path) {
-        log_err("environment variable DB_ACCESS_FILE is not set or empty");
+        db_err("environment variable DB_ACCESS_FILE is not set or empty");
         return null;
     }
     
     $config = u_parse_json(u_read_file($access_path));
-    if (!isset($config))
+    if (!isset($config)) {
+        db_err("Failed to parse the DB configuration in $access_path as JSON file");
         return null;
+    }
     
     $db = new mysqli($config['host'], $config['user'], $config['password'], $config['database']);
     if ($db->connect_errno) {
-        err(sprintf("Failed to connect to MySQL: (%d) %s",
+        db_err(sprintf("Failed to connect to MySQL: (%d) %s",
                     $db->connect_errno, $db->connect_error));
         return null;
     }
 
-    $db->set_charset("utf8");
+    if (!$db->set_charset('utf8')) {
+        db_err(sprintf("set_charset('utf8') failed: (%d) %s", $sql, $db->errno, $db->error));
+        return null;
+    }
 
     $db_connection = $db;
     return $db;
@@ -128,7 +130,7 @@ function db_prepare($sql) {
 
 function db_bind_param($stmt, $type, &$v) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_param($type, $v)) {
         db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -136,7 +138,7 @@ function db_bind_param($stmt, $type, &$v) {
 
 function db_bind_param2($stmt, $types, &$v1, &$v2) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_param($types, $v1, $v2)) {
         db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -144,7 +146,7 @@ function db_bind_param2($stmt, $types, &$v1, &$v2) {
 
 function db_bind_param3($stmt, $types, &$v1, &$v2, &$v3) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_param($types, $v1, $v2, $v3)) {
         db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -152,7 +154,7 @@ function db_bind_param3($stmt, $types, &$v1, &$v2, &$v3) {
 
 function db_bind_param4($stmt, $types, &$v1, &$v2, &$v3, &$v4) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4)) {
         db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -160,7 +162,7 @@ function db_bind_param4($stmt, $types, &$v1, &$v2, &$v3, &$v4) {
 
 function db_bind_param5($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5)) {
         db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -168,7 +170,7 @@ function db_bind_param5($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5) {
 
 function db_bind_param7($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5, $v6, $v7)) {
         db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -176,7 +178,7 @@ function db_bind_param7($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7)
 
 function db_bind_param6($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5, $v6)) {
         db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -184,9 +186,17 @@ function db_bind_param6($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
 
 function db_bind_param8($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7, &$v8) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5, $v6, $v7, $v8)) {
         db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
+    }
+}
+
+function db_send_long_data($stmt, $column, $data) {
+    if (!isset($stmt) || db_failed())
+        return;
+    if (!$stmt->send_long_data($column, $data)) {
+        db_err(sprintf("send_long_data() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
 }
 
@@ -194,12 +204,12 @@ function db_execute($stmt) {
     if (!isset($stmt) || db_failed())
         return;
     if (!$stmt->execute()) {
-        db_err("execute() failed: (%d) %s", $stmt->errno, $stmt->error);
+        db_err(sprintf("execute() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
 }
 
 function db_insert_id() {
-    if (!isset($sql) || !($db = db_connect()))
+    if (!($db = db_connect()))
         return 0;
     return $db->insert_id;
 }
@@ -215,15 +225,31 @@ function db_store_result($stmt) {
 
 function db_bind_result($stmt, &$v) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_result($v)) {
+        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
+    }
+}
+
+function db_bind_result2($stmt, &$v1, &$v2) {
+    if (!isset($stmt) || db_failed())
+        return;
+    if (!$stmt->bind_result($v1, $v2)) {
+        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
+    }
+}
+
+function db_bind_result4($stmt, &$v1, &$v2, &$v3, &$v4) {
+    if (!isset($stmt) || db_failed())
+        return;
+    if (!$stmt->bind_result($v1, $v2, $v3, $v4)) {
         db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
 }
 
 function db_bind_result6($stmt, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_result($v1, $v2, $v3, $v4, $v5, $v6)) {
         db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -231,7 +257,7 @@ function db_bind_result6($stmt, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
 
 function db_bind_result7($stmt, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7) {
     if (!isset($stmt) || db_failed())
-        return null;
+        return;
     if (!$stmt->bind_result($v1, $v2, $v3, $v4, $v5, $v6, $v7)) {
         db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
@@ -267,15 +293,6 @@ function db_affected_rows($stmt) {
     if (!is_int($num) || $num < 0)
         return 0;
     return $num;
-}
-
-function db_fetch_row($result) {
-    if (!isset($result) || db_failed())
-        return null;
-
-    // TODO find out how to distinguish null from errors
-    $row = $result->fetch_assoc();
-    return (object) $row;
 }
 
 function db_fetch_all($result) {

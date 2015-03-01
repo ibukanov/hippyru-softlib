@@ -1,5 +1,4 @@
 <?php
-if (!defined ("INCLUDE_LEGAL")) die ("File execution is prohibited.");
 
 /**
  * Establish the user-data of
@@ -37,24 +36,20 @@ function isWritePermitted () {
 function get_user_info($login) {
     global $mysql_table_users;
 
-    $row = null;
+    $ui = (object) ['name' => null,
+                    'passhash' => null,
+                    'cookiesalt' => null,
+                    'access' => null];
     if ($login) {
         $stmt = db_prepare("SELECT name, passhash, cookiesalt, access " .
                            "FROM $mysql_table_users WHERE nickname=?");
         db_bind_param($stmt, "s", $login);
         db_execute($stmt);
-        $result = db_get_result($stmt);
-        $row = db_fetch_row($result);
-        db_free($result);
+        db_bind_result4($stmt, $ui->name, $ui->passhash, $ui->cookiesalt, $ui->access);
+        db_fetch($stmt);
         db_close($stmt);
     }
-    if ($row)
-        return $row;
-
-    return (object) ['name' => null,
-                     'passhash' => null,
-                     'cookiesalt' => null,
-                     'access' => null];
+    return $ui;
 }
 
 function get_hmac_secret($user_info) {
@@ -115,6 +110,11 @@ function user_login ($user, $pass) {
 
 function user_logout () {
     drop_login_cookie();
+}
+
+function check_post_key() {
+    global $saved_pkey_cookie;
+    return isset($_POST["pkey"]) && $_POST["pkey"] === $saved_pkey_cookie;
 }
 
 check_login_cookie();

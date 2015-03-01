@@ -1,6 +1,4 @@
 <?php
-if (!defined ("INCLUDE_LEGAL")) die ("File execution is prohibited.");
-
 /**
  * Display login/logout form,
  * using $strUserName variable.
