@@ -43,23 +43,23 @@ if (!isWritePermitted()) {
             $r_year = (int) date("Y");
         }
         
-        $r_author = filter_input (INPUT_POST, "author", FILTER_SANITIZE_STRING);
+        $r_author = filter_input(INPUT_POST, "author", FILTER_SANITIZE_STRING);
         if (!$r_author) {
             $r_group = $strUserName_Full;
         }
 
-        $r_content = filter_input (INPUT_POST, "contents");
+        $r_content = filter_input(INPUT_POST, "contents");
 
         $r_stamp  = time ();
 
-        $r_id = (int) filter_input (INPUT_POST, "id", FILTER_VALIDATE_INT);
+        $r_id = (int) filter_input(INPUT_POST, "id", FILTER_VALIDATE_INT);
         
-        $path = get_data_file_path($r_id);
-
         if ($r_id != 0) {
             $stmt = db_prepare("UPDATE $mysql_table " .
-                               "SET class=?, title=?, author=?, year=? WHERE id=?");
-            db_bind_param5($stmt, "sssii", $r_class, $r_title, $r_author, $r_year, $r_id);
+                               "SET class=?, title=?, author=?, year=?, content=? " .
+                               "WHERE id=?");
+            db_bind_param6($stmt, "sssiis",
+                           $r_class, $r_title, $r_author, $r_year, $r_id, $r_content);
             db_execute($stmt);
             $exists = (db_affected_rows($stmt) === 1);
             db_close($stmt);
@@ -77,12 +77,7 @@ if (!isWritePermitted()) {
             }
             
             if ($exists) {
-                if (strlen($r_content) === file_put_contents($path, $r_content)) {
-                    $bSuccess = true;
-                } else {
-                    log_err('failed to write to %s %d bytes', $path, strlen($r_content));
-                }
-
+                $bSuccess = true;
             } elseif (db_ok()) {
                 echo "<p align='center' class='style2'><b>Требуемая запись не найдена.</b></p><br>";
             }
@@ -90,25 +85,16 @@ if (!isWritePermitted()) {
         } else {
             // Add the record to database
             $stmt = db_prepare("INSERT INTO $mysql_table " .
-                               "VALUES (null, ?, ?, ?, ?, ?, ?, '', ?)");
+                               "VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?)");
             
-            db_bind_param7($stmt, 'ssssiii', $r_class, $r_title, $r_author, $strUserName,
-                           $r_year, $r_stamp, $r_pageid);
+            db_bind_param8($stmt, 'ssssiisi',
+                           $r_class, $r_title, $r_author, $strUserName,
+                           $r_year, $r_stamp, $r_content, $r_pageid);
             db_execute($stmt);
             $r_id = db_insert_id();
             db_close($stmt);
             if ($r_id) {
-                if (strlen($r_content) === file_put_contents($path, $r_content)) {
-                    $bSuccess = true;
-                } else {
-                    log_err('failed to write to %s %d bytes', $path, strlen($r_content));
-
-                    // Remove just inserted table
-                    $stmt = db_prepare("DELETE FROM $mysql_table WHERE id = ?");
-                    db_bind_param($stmt, "i", $r_id);
-                    db_execute($stmt);
-                    db_close($stmt);
-                }
+                $bSuccess = true;
             }
         }
     }

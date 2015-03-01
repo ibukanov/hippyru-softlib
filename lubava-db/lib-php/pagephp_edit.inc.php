@@ -14,23 +14,19 @@ $r_contents  = "";
 $r_pageid    = $pageid;
 $butTitle    = "Загрузить";
 
-$r_id = (int )filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
+$r_id = (int) filter_input(INPUT_GET, "idx", FILTER_VALIDATE_INT);
 
 if ($mode == "edit" && $r_id) {
 
-    $stmt = db_prepare("SELECT pageid, author, year, title, sender, class FROM $mysql_table WHERE id = ?");
+    $stmt = db_prepare("SELECT pageid, author, year, title, sender, class, content " .
+                       "FROM $mysql_table WHERE id = ?");
     db_bind_param($stmt, "i", $r_id);
     db_execute($stmt);
-    db_bind_result6($stmt, $r_pageid, $r_author, $r_year, $r_title, $r_sender, $r_class);
+    db_store_result();
+    db_bind_result7($stmt, $r_pageid, $r_author, $r_year, $r_title,
+                    $r_sender, $r_class, $r_content);
     db_fetch($stmt);
     db_close($stmt);
-
-    if (db_ok()) {
-        $r_contents = file_get_contents(get_data_file_path($r_id));
-        if ($r_contents === false) {
-            $r_contents = $ERR_not_found;
-        }
-    }
 }
 
 if (isWritePermitted () && ($r_sender == $strUserName || isSuperuser () || $r_sender == "")) {
@@ -103,7 +99,7 @@ EOT;
     </tr>
     <tr valign="top">
         <td align="left"><font class='style2'>Текст</font></td>
-        <td align="left"><textarea id="teContents" name="contents" rows="20" cols="60">$r_contents</textarea></td>
+        <td align="left"><textarea id="teContents" name="contents" rows="20" cols="60">$r_content</textarea></td>
     </tr>
     <tr>
         <td></td>

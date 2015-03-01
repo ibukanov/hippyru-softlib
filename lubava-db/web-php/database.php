@@ -50,11 +50,6 @@ if ($pageid_s != "") {
     }
 }
 
-function get_data_file_path($r_id) {
-    return sprintf('%s/database/data/texts/text-%d.htmlraw',
-                   $_SERVER['DOCUMENT_ROOT'], $r_id);
-}
-
 $strBackUrl   = "<p align='center' class='style2'><a href='".$url_me."?mode=title&pageid=$pageid' class='noneline'>Назад</a></p>";
 $strBackUrl_1 = "<p align='center' class='style2'><a href='".$url_me."?mode=list&pageid=$pageid' class='noneline'>Назад</a></p>";
 

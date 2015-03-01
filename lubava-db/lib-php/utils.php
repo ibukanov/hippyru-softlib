@@ -174,6 +174,22 @@ function db_bind_param7($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7)
     }
 }
 
+function db_bind_param6($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
+    if (!isset($stmt) || db_failed())
+        return null;
+    if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5, $v6)) {
+        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
+    }
+}
+
+function db_bind_param8($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7, &$v8) {
+    if (!isset($stmt) || db_failed())
+        return null;
+    if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5, $v6, $v7, $v8)) {
+        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
+    }
+}
+
 function db_execute($stmt) {
     if (!isset($stmt) || db_failed())
         return;
@@ -209,6 +225,14 @@ function db_bind_result6($stmt, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
     if (!isset($stmt) || db_failed())
         return null;
     if (!$stmt->bind_result($v1, $v2, $v3, $v4, $v5, $v6)) {
+        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
+    }
+}
+
+function db_bind_result7($stmt, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7) {
+    if (!isset($stmt) || db_failed())
+        return null;
+    if (!$stmt->bind_result($v1, $v2, $v3, $v4, $v5, $v6, $v7)) {
         db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
     }
 }

@@ -56,7 +56,6 @@ EOT;
                     db_bind_param($stmt, "i", $r_id);
                     db_execute($stmt);
                     if (db_affected_rows($stmt) === 1) {
-                        unlink(get_data_file_path($r_id));
                         echo "<p align='center' class='style2'><b>Запись благополучно удалена.</b></p><br>";
                     }
                 }
