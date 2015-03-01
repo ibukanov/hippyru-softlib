@@ -16,7 +16,9 @@ function update_password($user, $password) {
     $stmt = db_prepare("UPDATE $mysql_table_users SET passhash=? WHERE nickname=?");
     db_bind_param2($stmt, "ss", $hash, $user);
     db_execute($stmt);
-    if (db_affected_rows($stmt) === 1) {
+    $naffected = db_affected_rows($stmt);
+    db_close($stmt);
+    if ($naffected === 1) {
         log_info('Updated password for %s', $user);
     } else if (db_ok()) {
         log_err("Failed to locate the user '%s'", $user);

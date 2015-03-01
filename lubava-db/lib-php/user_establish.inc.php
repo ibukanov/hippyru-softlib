@@ -108,8 +108,27 @@ function user_login ($user, $pass) {
     return false;
 }
 
-function user_logout () {
+function user_logout() {
+    global $strUserName, $mysql_table_users;
+    
     drop_login_cookie();
+
+    # Logout all sessions by changing the hmac secret for the login cookie.
+    if ($strUserName && $strUserName !== "guest") {
+        $salt = openssl_random_pseudo_bytes(6);
+        $stmt = db_prepare("UPDATE $mysql_table_users SET cookiesalt=? WHERE nickname=?");
+        db_bind_param2($stmt, "ss", $salt, $strUserName);
+        db_execute($stmt);
+        $naffected = db_affected_rows($stmt);
+        db_close($stmt);
+        if (!db_ok())
+            return PAGE_DB_ERR;
+        if ($naffected !== 1) {
+            db_err("Failed to update login record for $strUserName");
+            return PAGE_DB_ERR;
+        }
+    }
+    return 0;
 }
 
 function check_post_key() {

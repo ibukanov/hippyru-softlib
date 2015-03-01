@@ -89,6 +89,8 @@ if ($pageid_s != "") {
 $strBackUrl   = "<p align='center' class='style2'><a href='".$url_me."?mode=title&pageid=$pageid' class='noneline'>Назад</a></p>";
 $strBackUrl_1 = "<p align='center' class='style2'><a href='".$url_me."?mode=list&pageid=$pageid' class='noneline'>Назад</a></p>";
 
+$should_show_err = 0;
+
 // If user
 // tries to log in...
 if (isset($_POST['mode']) && $_POST['mode'] == 'login') {
@@ -112,9 +114,11 @@ if (isset($_POST['mode']) && $_POST['mode'] == 'login') {
 //
 // Log out.
 //
-    user_logout ();
-    header ("Location: " . $url_me . "?pageid=$pageid");
-    exit();
+    $should_show_err = user_logout();
+    if (!$should_show_err) {
+        header ("Location: " . $url_me . "?pageid=$pageid");
+        exit();
+    }
 }
     
 /************ DISPLAY THE HEADER **************/
@@ -137,6 +141,12 @@ EOT;
 if ($mode != "skip") {
     display_form_login ();
 }
+
+if ($should_show_err) {
+    write_error_html($should_show_err);
+    $mode = "skip";
+}
+
 
 /******************************************************/
 /******************* HERE WE GO ***********************/
