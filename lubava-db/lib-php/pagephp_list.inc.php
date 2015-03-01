@@ -12,8 +12,8 @@ $sort_first='Тексты';
 
 $stmt = db_prepare(
     "SELECT a.class, a.id, a.sender, a.author, a.year, a.title " .
-    "FROM texts a JOIN " .
-    "(SELECT class, count(*) AS freq FROM texts WHERE pageid=? GROUP BY class) b " .
+    "FROM $mysql_table a JOIN " .
+    "(SELECT class, count(*) AS freq FROM $mysql_table WHERE pageid=? GROUP BY class) b " .
     "ON a.class = b.class " .
     "WHERE a.pageid=? " .
     "ORDER BY a.class <> ?, b.freq desc, a.year desc, a.title");

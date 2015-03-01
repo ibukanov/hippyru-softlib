@@ -6,7 +6,7 @@ if (!defined ("INCLUDE_LEGAL")) die ("File execution is prohibited.");
 //
 
 function do_delete() {
-    global $mysql_table, $saved_pkey_cookie, $strUserName, $url_me;
+    global $mysql_table, $saved_pkey_cookie, $strUserName, $url_me, $pageid;
     
     $r_id = filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
     if (!is_int($r_id)) {
@@ -15,30 +15,22 @@ function do_delete() {
     }
 
     $found = false;
-    $r_path = null;
     $r_sender = null;
 
-    $stmt = db_prepare("SELECT sender, contents FROM $mysql_table WHERE id=?");
+    $stmt = db_prepare("SELECT sender FROM $mysql_table WHERE id=?");
     db_bind_param($stmt, "i", $r_id);
     db_execute($stmt);
-    $result = db_get_result($stmt);
-    $row = db_fetch_row($result);
-    if (is_null($row)) {
+    db_bind_result($stmt, $r_sender);
+    db_fetch($stmt);
+    db_close($stmt);
+    if (!isset($r_sender)) {
         if (db_ok()) {
             echo "<p align='center' class='style2'><b>Требуемая запись не найдена.</b></p><br>";
         }
     } else {
-        $found = true;
-        $r_sender = $row->sender;
-        $r_path = $row->contents;
-    }
-    db_free($result);
-    db_close($stmt);
-
-    if ($found) {
         // Only owner or superuser
         // can delete it.
-        if ($strUserName == $r_sender || isSuperuser ()) {
+        if ($strUserName === $r_sender || isSuperuser ()) {
             if (!isset($_POST["confirmed"])) {
                 // Ask for confirmation.
                 echo <<<EOT
@@ -64,9 +56,7 @@ EOT;
                     db_bind_param($stmt, "i", $r_id);
                     db_execute($stmt);
                     if (db_affected_rows($stmt) === 1) {
-                        if (isset($r_path)) {
-                            unlink ($_SERVER['DOCUMENT_ROOT'] .  "/" . $r_path);
-                        }
+                        unlink(get_data_file_path($r_id));
                         echo "<p align='center' class='style2'><b>Запись благополучно удалена.</b></p><br>";
                     }
                 }

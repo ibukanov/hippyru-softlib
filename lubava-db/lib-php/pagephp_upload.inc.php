@@ -48,7 +48,7 @@ if (!isWritePermitted()) {
             $r_group = $strUserName_Full;
         }
 
-        $r_contents = filter_input (INPUT_POST, "contents");
+        $r_content = filter_input (INPUT_POST, "contents");
 
         $r_stamp  = time ();
 
@@ -61,8 +61,8 @@ if (!isWritePermitted()) {
                                "SET class=?, title=?, author=?, year=? WHERE id=?");
             db_bind_param5($stmt, "sssii", $r_class, $r_title, $r_author, $r_year, $r_id);
             db_execute($stmt);
-
             $exists = (db_affected_rows($stmt) === 1);
+            db_close($stmt);
             if (!$exists && db_ok()) {
                 // affected rows is zero if the new values matches old ones
                 $stmt = db_prepare("SELECT id FROM $mysql_table where id=?");
@@ -70,16 +70,17 @@ if (!isWritePermitted()) {
                 db_execute($stmt);
                 db_bind_result($stmt, $r_old_id);
                 db_fetch($stmt);
+                db_close($stmt);
                 if ($r_old_id === $r_id) {
                     $exists = true;
                 }
             }
             
             if ($exists) {
-                if (strlen($r_contents) === file_put_contents($path, $r_contents)) {
+                if (strlen($r_content) === file_put_contents($path, $r_content)) {
                     $bSuccess = true;
                 } else {
-                    log_err('failed to write to %s %d bytes', $path, strlen($r_contents));
+                    log_err('failed to write to %s %d bytes', $path, strlen($r_content));
                 }
 
             } elseif (db_ok()) {
@@ -97,10 +98,10 @@ if (!isWritePermitted()) {
             $r_id = db_insert_id();
             db_close($stmt);
             if ($r_id) {
-                if (strlen($r_contents) === file_put_contents($path, $r_contents)) {
+                if (strlen($r_content) === file_put_contents($path, $r_content)) {
                     $bSuccess = true;
                 } else {
-                    log_err('failed to write to %s %d bytes', $path, strlen($r_contents));
+                    log_err('failed to write to %s %d bytes', $path, strlen($r_content));
 
                     // Remove just inserted table
                     $stmt = db_prepare("DELETE FROM $mysql_table WHERE id = ?");

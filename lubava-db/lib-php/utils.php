@@ -188,6 +188,15 @@ function db_insert_id() {
     return $db->insert_id;
 }
 
+function db_store_result($stmt) {
+    if (!isset($stmt) || db_failed())
+        return null;
+    if (!$stmt->store_result()) {
+        db_err("store_result() failed: (%d) %s", $stmt->errno, $stmt->error);
+    }
+    return null;
+}
+
 function db_bind_result($stmt, &$v) {
     if (!isset($stmt) || db_failed())
         return null;
