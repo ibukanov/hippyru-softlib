@@ -32,3 +32,4 @@ define('PAGE_RECORD_NOT_FOUND',   -2);
 define('PAGE_NO_WRITE_ACCESS',    -3);
 define('PAGE_BAD_POST_KEY',       -4);
 define('PAGE_BAD_INTERNAL_VALUE', -5);
+define('PAGE_BAD_LOGIN',          -6);

@@ -36,19 +36,16 @@ function isWritePermitted () {
 function get_user_info($login) {
     global $mysql_table_users;
 
-    $ui = (object) ['name' => null,
-                    'passhash' => null,
-                    'cookiesalt' => null,
-                    'access' => null];
-    if ($login) {
-        $stmt = db_prepare("SELECT name, passhash, cookiesalt, access " .
-                           "FROM $mysql_table_users WHERE nickname=?");
-        db_bind_param($stmt, "s", $login);
-        db_execute($stmt);
-        db_bind_result4($stmt, $ui->name, $ui->passhash, $ui->cookiesalt, $ui->access);
-        db_fetch($stmt);
-        db_close($stmt);
-    }
+    $ui = new stdClass();
+    $stmt = db_prepare("SELECT name, passhash, cookiesalt, access " .
+                       "FROM $mysql_table_users WHERE nickname=?");
+    db_bind_param($stmt, "s", $login);
+    db_execute($stmt);
+    db_bind_result4($stmt, $ui->name, $ui->passhash, $ui->cookiesalt, $ui->access);
+    db_fetch($stmt);
+    db_close($stmt);
+    if (!db_ok())
+        return PAGE_DB_ERR;
     return $ui;
 }
 
@@ -70,47 +67,52 @@ function drop_login_cookie() {
 }
 
 function check_login_cookie() {
-    global $eUserAccess, $strUserName_Full, $strUserName, $mode;
-    
+    global $eUserAccess, $strUserName_Full, $strUserName;
+
     if (!isset($_COOKIE['u']))
         return;
 
     $cookie = $_COOKIE['u'];
     $user = session\parse_cookie_user($cookie);
+    if (!$user)
+        return;
+
     $user_info = get_user_info($user);
-    $cookie_info = session\parse_cookie($cookie, $user_info->passhash, get_hmac_secret($user_info));
-    if ($cookie_info->expiration > time()) {
-        $eUserAccess      = $user_info->access;
-        $strUserName_Full = $user_info->name;
-        $strUserName      = $user;
-    } else {
-        // Invalidate the ID.
-        drop_login_cookie();
-            
-        // Kick user back
-        header ("Location: " . $url_me); 
-        
-        $mode = "skip";
+
+    // TODO report DB errors
+    if (is_object($user_info)) {
+        $cookie_info = session\parse_cookie($cookie, $user_info->passhash,
+                                            get_hmac_secret($user_info));
+        if ($cookie_info->expiration > time()) {
+            $eUserAccess      = $user_info->access;
+            $strUserName_Full = $user_info->name;
+            $strUserName      = $user;
+        } else {
+            // Invalidate the ID.
+            drop_login_cookie();
+        }
     }
 }
 
-/// Returns TRUE, if
-/// login is successful.
-function user_login ($user, $pass) {
+/// Returns 0, if login is successful.
+function user_login($user, $pass) {
     $user_info = get_user_info($user);
+    if (!is_object($user_info))
+        return $user_info;
+
     $expiration = time() + 12 * 3600;
     $cookie = session\verify_password($user, $pass, $expiration,
                                       $user_info->passhash, get_hmac_secret($user_info));
-    if (isset($cookie)) {
-        set_login_cookie($cookie, $expiration);
-        return true;
-    }
-    return false;
+    if (!isset($cookie))
+        return PAGE_BAD_LOGIN;
+
+    set_login_cookie($cookie, $expiration);
+    return 0;
 }
 
 function user_logout() {
     global $strUserName, $mysql_table_users;
-    
+
     drop_login_cookie();
 
     # Logout all sessions by changing the hmac secret for the login cookie.

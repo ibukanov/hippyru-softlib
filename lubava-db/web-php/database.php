@@ -35,11 +35,11 @@ function write_error_html($page_error) {
     $with_sys_details = false;
     switch ($page_error) {
       case PAGE_DB_ERR:
-        $msg = 'Ошибка базы данных';
+        $msg = 'Ошибка базы данных.';
         $with_sys_details = true;
         break;
       case PAGE_RECORD_NOT_FOUND:
-        $msg = 'Требуемая запись не найдена';
+        $msg = 'Требуемая запись не найдена.';
         break;
       case PAGE_NO_WRITE_ACCESS:
         $msg = 'Вы не имеете прав загружать или редактировать запись.';
@@ -48,10 +48,12 @@ function write_error_html($page_error) {
         $msg = 'Загрузка невозможна. Проверьте, включен ли JavaScript в Вашем браузере.';
         break;
       case PAGE_BAD_INPUT:
-        $msg = 'Неверное значениe системного параметра';
+        $msg = 'Неверное значениe системного параметра.';
         $with_sys_details = true;
         break;
-        
+      case PAGE_BAD_LOGIN:
+        $msg = 'Неверный логин или пароль.';
+        break;
       default:
         throw new Exception("page_error is unknown: $page_error");
     };
@@ -66,8 +68,6 @@ function write_error_html($page_error) {
     }
     printf("<hr>%s", $strBackUrl);
 }
-
-check_login_cookie();
 
 //
 // Determine the page to display
@@ -86,10 +86,9 @@ if ($pageid_s != "") {
     }
 }
 
-$strBackUrl   = "<p align='center' class='style2'><a href='".$url_me."?mode=title&pageid=$pageid' class='noneline'>Назад</a></p>";
-$strBackUrl_1 = "<p align='center' class='style2'><a href='".$url_me."?mode=list&pageid=$pageid' class='noneline'>Назад</a></p>";
-
 $should_show_err = 0;
+
+check_login_cookie();
 
 // If user
 // tries to log in...
@@ -98,18 +97,15 @@ if (isset($_POST['mode']) && $_POST['mode'] == 'login') {
 // Try to log him in
 //
     if (isset ($_POST["id"]) && isset ($_POST["pass"])) {
-       if (user_login (
-                filter_input (INPUT_POST, "id",   FILTER_SANITIZE_STRING),
-                filter_input (INPUT_POST, "pass", FILTER_SANITIZE_STRING)
-        )){
-            header ("Location: " . $url_me . "?pageid=$pageid");
-        } else {
-            echo "<p align='center' class='style2'>Неверный логин или пароль</p>";
-            echo "<hr>" . $strBackUrl;
-        }
+       $should_show_err = user_login(
+           filter_input(INPUT_POST, "id",   FILTER_SANITIZE_STRING),
+           filter_input(INPUT_POST, "pass", FILTER_SANITIZE_STRING));
+       if (!$should_show_err) {
+           header ("Location: " . $url_me . "?pageid=$pageid");
+           exit();
+       }
     }
 
-    $mode = "skip";
 } else if ($mode == 'logout') {
 //
 // Log out.
@@ -152,8 +148,13 @@ if ($should_show_err) {
 /******************* HERE WE GO ***********************/
 /******************************************************/
 
+$strBackUrl   = "<p align='center' class='style2'><a href='${url_me}?mode=title&pageid=$pageid' class='noneline'>Назад</a></p>";
+
 if ($strUserName == "guest") {
     $strBackUrl_1 = $strBackUrl;
+} else {
+    $strBackUrl_1 = "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$pageid' class='noneline'>Назад</a></p>";
+
 }
 
 if ($mode == "title") {
