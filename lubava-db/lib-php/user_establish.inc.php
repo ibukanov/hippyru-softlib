@@ -33,6 +33,12 @@ function isWritePermitted () {
     return ($eUserAccess & ACCESS_LEGAL) == ACCESS_LEGAL;
 }
 
+// Check if can modify/delete record with the given $sender
+function can_edit_for_sender($sender) {
+    global $strUserName;
+    return isSuperuser() || ($sender && $sender === $strUserName);
+}
+
 function get_user_info($login) {
     global $mysql_table_users;
 

@@ -1,7 +1,7 @@
 <?php
 
 function do_edit() {
-    global $mode, $pageid, $mysql_table, $strUserName_Full, $strUserName, $g_PageTitles;
+    global $pageid, $mysql_table, $strUserName_Full, $strUserName, $g_PageTitles;
     
     $r = new stdClass();
 
@@ -9,7 +9,7 @@ function do_edit() {
         return PAGE_NO_WRITE_ACCESS;
 
     $r->id = (int) filter_input(INPUT_GET, "idx", FILTER_VALIDATE_INT);
-    if ($mode == "edit" && $r->id) {
+    if ($r->id) {
         $r->new_record = false;
         $stmt = db_prepare("SELECT pageid, author, year, title, sender, class, content " .
                            "FROM $mysql_table WHERE id = ?");

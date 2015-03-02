@@ -5,17 +5,16 @@
     require_once "../lib-php/utils.php";
     require_once "../lib-php/session.php";
     require_once "../lib-php/user_establish.inc.php";
-    require_once "../lib-php/form_loginout.inc.php";
 
 if (isset  ($_GET["mode"])) {
     $mode = filter_input (INPUT_GET, "mode", FILTER_SANITIZE_STRING);
 } else if (isset  ($_POST["epost"])) {
     $mode = filter_input (INPUT_POST, "epost", FILTER_SANITIZE_STRING);
 } else {
-    $mode = "title";
+    $mode = "list";
 }
 
-// Remove pkey cookie before we write any HTML 
+// Remove pkey cookie before we write any HTML
 $saved_pkey_cookie = null;
 if (isset($_COOKIE['pkey'])) {
     $saved_pkey_cookie = $_COOKIE['pkey'];
@@ -116,7 +115,7 @@ if (isset($_POST['mode']) && $_POST['mode'] == 'login') {
         exit();
     }
 }
-    
+
 /************ DISPLAY THE HEADER **************/
 
 echo <<<EOT
@@ -135,7 +134,28 @@ EOT;
 // Display login/logout form
 //
 if ($mode != "skip") {
-    display_form_login ();
+    // Check authorization
+    if ($strUserName != "guest") {
+    //
+    // Logged in.
+    //
+        echo "<div style='text-align: right'><a href='${url_me}?mode=logout&pageid=$pageid'>[Выйти ($strUserName)]</a></div>";
+    } else {
+    //
+    // Not logged in.
+    //
+        echo <<<EOT
+<!-- Login form -->
+<form enctype="multipart/form-data" action="$url_me" method="post">
+  <div style='text-align: right'>
+  <input type="hidden" name="epost" value="login" />
+  <input type="hidden" name="pageid" value="$pageid" />
+  <input type="hidden" name="mode" value="login" />
+  Логин:&nbsp;<input type="text" name="id" size='9'/> &nbsp;&nbsp;Пароль:&nbsp;<input type="password" name="pass" size='14'/> &nbsp;&nbsp;<input type="submit" value="Войти" />
+  </div>
+</form>
+EOT;
+    }
 }
 
 if ($should_show_err) {
@@ -143,45 +163,61 @@ if ($should_show_err) {
     $mode = "skip";
 }
 
-
 /******************************************************/
 /******************* HERE WE GO ***********************/
 /******************************************************/
 
-$strBackUrl   = "<p align='center' class='style2'><a href='${url_me}?mode=title&pageid=$pageid' class='noneline'>Назад</a></p>";
+$strBackUrl   = "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$pageid' class='noneline'>Назад</a></p>";
 
-if ($strUserName == "guest") {
-    $strBackUrl_1 = $strBackUrl;
-} else {
-    $strBackUrl_1 = "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$pageid' class='noneline'>Назад</a></p>";
-
-}
-
-if ($mode == "title") {
-//
-// Display the title page.
-//
-    $strBackUrl = "<p align='center' class='style2'><a href='http://".$_SERVER['SERVER_NAME']."' class='noneline'>Назад</a></p>";
-
-    if ($strUserName == "guest") {
-        // For guests there is no
-        // title page. Redirect them to the list.
-        require_once ("../lib-php/pagephp_list.inc.php");
-
-    } else {
-        echo "<p align='center' class='style2'><a href='${url_me}?mode=ask_file&pageid=$pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$pageid]."</a></p>";
-        echo "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$pageid' class='noneline'>+ Список ".$g_DocName_1[$pageid]."</a></p>";
-        echo "<br>".$strBackUrl;
-    }
-
-} else if ($mode == "list") {
+if ($mode == "list") {
 //
 // Display the list of
 // uploaded files.
 //
-    require_once ("../lib-php/pagephp_list.inc.php");
+    require_once ("../lib-php/show.php");
 
-} elseif ($mode == "ask_file" || $mode == "edit") {
+    $r = do_get_list('Тексты');
+    if (!is_object($r)) {
+        write_error_html($r);
+    } else {
+        if (isWritePermitted()) {
+            echo "<p align='center' class='style2'><a href='${url_me}?mode=edit&pageid=$pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$pageid]."</a></p>";
+        }
+
+        $class = "";
+        $need_author = false;
+        foreach ($r->rows as $row) {
+            $r_class    = $row[LIST_COLUMN_CLASS];
+            $r_id       = $row[LIST_COLUMN_ID];
+            $r_can_edit = can_edit_for_sender($row[LIST_COLUMN_SENDER]);
+            $r_author   = $row[LIST_COLUMN_AUTHOR];
+            $r_year     = $row[LIST_COLUMN_YEAR];
+            $r_title    = $row[LIST_COLUMN_TITLE];
+
+            // Split classes
+            if ($r_class != $class) {
+                if ($class != "") echo "</table>\n";
+                echo "<p align='center' class='style2'>$r_class</p><table border='1' align='center' width='50%'>";
+                $class = $r_class;
+                $need_author = strpos($class, "Чужие") !== false;
+            }
+
+            echo "<tr><td align='center' width='10%'><font class='style2'>$r_year</font></td>";
+
+            if ($need_author) {
+                echo "<td align=center><font class='style2'>&nbsp;<nobr>$r_author</nobr>&nbsp;</font></td>";
+            }
+
+            echo "<td align='center'><font class='style2'>";
+            echo "<a href='$url_me?mode=showtext&idx=$r_id&pageid=$pageid' class='noneline'>$r_title</a>";
+            echo "</font></td>";
+            echo "</tr>";
+        }
+        if (!count($r->rows))
+            echo "<p align='center' class='style2'>Ни одного файла не загружено</p>$strBackUrl";
+    }
+
+} elseif ($mode == "edit") {
 //
 // Form for text uploading.
 //
@@ -191,7 +227,13 @@ if ($mode == "title") {
     if (!is_object($r)) {
         write_error_html($r);
     } else {
-        $butTitle = $r->new_record ? "Загрузить" : "Сохранить";
+        if ($r->new_record) {
+            $butTitle = "Загрузить";
+            $delete_link = "";
+        } else {
+            $butTitle = "Сохранить";
+            $delete_link = "<br><br><span class='style2'><a href='${url_me}?mode=delete&idx=$r->id&pageid=$pageid' class='noneline' style='vertical-align: top'>Удалить&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.remove.png'/></a></span>";
+        }
 
     echo <<<EOT
 <script type="text/javascript">
@@ -245,7 +287,7 @@ EOT;
         <td align="left"><input type="text" size="50" name="title" value="$r->title"/></td>
     </tr>
     <tr valign="top">
-        <td align="left"><font class='style2'>Текст</font></td>
+        <td align="left"><span class='style2'>Текст</span>$delete_link</td>
         <td align="left"><textarea id="teContent" name="content" rows="20" cols="60">$r->content</textarea></td>
     </tr>
     <tr>
@@ -291,14 +333,35 @@ EOT;
         } else {
             echo "<p align='center' class='style2'><b>Запись $title благополучно удалена.</b></p><br>";
         }
-        echo $strBackUrl_1;
+        echo $strBackUrl;
     }
-    
+
 } else if ($mode == 'showtext') {
 //
 // Show specific text
 //
-    require_once ("../lib-php/pagephp_show.inc.php");
+    require_once ("../lib-php/show.php");
+    $r = do_show();
+    if (!is_object($r)) {
+        write_error_html($r);
+    } else {
+        $CurYear = date ("Y", time ());
+        $r_stamp = date("d M Y", $r->uploaded);
+
+        // Create year-span
+        if ($CurYear != $r->year) {
+            $r->year = "$r->year-$CurYear";
+        }
+
+        if (can_edit_for_sender($r->sender)) {
+            echo"<span class='style2'><a href='${url_me}?mode=edit&idx=$r->id&pageid=$pageid' class='noneline' style='vertical-align: top'>Редактировать&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></span>";
+        }
+        echo "<p class='style2'><b>$r->author</b></p>";
+        echo "<p class='style2'><b><i>&nbsp;&nbsp;&nbsp;&nbsp;$r->title</i></b></p>";
+        echo "<div class='style2_pad'>$r->content</div><br>";
+        // echo "<p class='style2'><font size='-1'>(c) $r->author $r->year</font></p>";
+        echo $strBackUrl;
+    }
 
 } else if ($mode == 'upload') {
 //
@@ -311,7 +374,7 @@ EOT;
         write_error_html($r);
     } else {
         $record_url = "${url_me}?mode=showtext&idx=$r->id&pageid=$r->pageid";
-        $add_more_url = "${url_me}?mode=ask_file&pageid=$r->pageid";
+        $add_more_url = "${url_me}?mode=edit&pageid=$r->pageid";
         echo "<center><font class='style2'>";
         if ($r->new_record) {
             echo "<a href='$record_url'>Файл</a> благополучно загружен в базу данных<br><br>";
@@ -322,7 +385,7 @@ EOT;
         echo "</font></center><br>";
         echo "<hr>" . $strBackUrl;
     }
-    
+
 } else if ($mode == "skip") {
 } else {
 //
