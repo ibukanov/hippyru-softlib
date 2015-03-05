@@ -1,7 +1,7 @@
 <?php
 
 function do_edit() {
-    global $pageid, $mysql_table, $strUserName_Full, $strUserName, $g_PageTitles;
+    global $pageid, $strUserName_Full, $strUserName, $g_PageTitles;
     
     $r = new stdClass();
 
@@ -11,8 +11,10 @@ function do_edit() {
     $r->id = (int) filter_input(INPUT_GET, "idx", FILTER_VALIDATE_INT);
     if ($r->id) {
         $r->new_record = false;
-        $stmt = db_prepare("SELECT pageid, author, year, title, sender, class, content " .
-                           "FROM $mysql_table WHERE id = ?");
+        $stmt = db_prepare(
+            "SELECT pageid, author, year, title, sender, class, content " .
+            "FROM %s WHERE id = ?",
+            DB_TABLE_TEXTS);
         db_bind_param($stmt, "i", $r->id);
         db_execute($stmt);
         db_store_result($stmt);
@@ -38,7 +40,7 @@ function do_edit() {
         $r->content   = "";
     }
 
-    $stmt = db_prepare("SELECT DISTINCT class FROM $mysql_table WHERE pageid=?");
+    $stmt = db_prepare("SELECT DISTINCT class FROM %s WHERE pageid=?", DB_TABLE_TEXTS);
     db_bind_param($stmt, "i", $r->pageid);
     db_execute($stmt);
     db_bind_result($stmt, $r_class);
@@ -55,7 +57,7 @@ function do_edit() {
 }
 
 function do_upload() {
-    global $g_PageTitles, $pageid, $strUserName_Full, $strUserName, $mysql_table;
+    global $g_PageTitles, $pageid, $strUserName_Full, $strUserName;
 
     if (!isWritePermitted())
         return PAGE_NO_WRITE_ACCESS;
@@ -67,7 +69,7 @@ function do_upload() {
 
     $r->id = (int) filter_input(INPUT_POST, "id", FILTER_VALIDATE_INT);
     if ($r->id !== 0) {
-        $stmt = db_prepare("SELECT pageid from $mysql_table WHERE id=?");
+        $stmt = db_prepare("SELECT pageid from %s WHERE id=?", DB_TABLE_TEXTS);
         db_bind_param($stmt, "i",$r->id);
         db_execute($stmt);
         db_bind_result($stmt, $r->pageid);
@@ -108,9 +110,10 @@ function do_upload() {
     
     if ($r->id !== 0) {
         $r->new_record = false;
-        $stmt = db_prepare("UPDATE $mysql_table " .
-                           "SET class=?, title=?, author=?, year=?, content=? " .
-                           "WHERE id=?");
+        $stmt = db_prepare(
+            "UPDATE %s SET class=?, title=?, author=?, year=?, content=? " .
+            "WHERE id=?",
+            DB_TABLE_TEXTS);
         $null = null;
         db_bind_param6($stmt, "sssibi",
                        $class_, $title, $author, $year, $null, $r->id);
@@ -122,8 +125,9 @@ function do_upload() {
     } else {
         $r->new_record = true;
         $stamp  = time ();
-        $stmt = db_prepare("INSERT INTO $mysql_table " .
-                           "VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = db_prepare(
+            "INSERT INTO %s VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?)",
+            DB_TABLE_TEXTS);
         $null = null;
         db_bind_param8($stmt, 'ssssiiib',
                        $class_, $title, $author, $strUserName,
@@ -144,7 +148,7 @@ function do_upload() {
 }
 
 function do_delete() {
-    global $mysql_table, $strUserName, $pageid;
+    global $strUserName, $pageid;
     
     $r = new stdClass();
 
@@ -159,7 +163,7 @@ function do_delete() {
     if (!$r->id)
         return PAGE_RECORD_NOT_FOUND;
         
-    $stmt = db_prepare("SELECT title, sender FROM $mysql_table WHERE id=?");
+    $stmt = db_prepare("SELECT title, sender FROM %s WHERE id=?", DB_TABLE_TEXTS);
     db_bind_param($stmt, "i", $r->id);
     db_execute($stmt);
     db_bind_result2($stmt, $r->title, $sender);
@@ -175,7 +179,7 @@ function do_delete() {
         return PAGE_NO_WRITE_ACCESS;
 
     if ($r->confirmed) {
-        $stmt = db_prepare("DELETE FROM $mysql_table WHERE id=?");
+        $stmt = db_prepare("DELETE FROM %s WHERE id=?", DB_TABLE_TEXTS);
         db_bind_param($stmt, "i", $r->id);
         db_execute($stmt);
         $naffected = db_affected_rows($stmt);

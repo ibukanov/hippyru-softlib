@@ -4,17 +4,16 @@
 
 define('LIST_COLUMN_CLASS',    0);
 define('LIST_COLUMN_ID',       1);
-define('LIST_COLUMN_SENDER',   2);
-define('LIST_COLUMN_AUTHOR',   3);
-define('LIST_COLUMN_YEAR',     4);
-define('LIST_COLUMN_TITLE',    5);
+define('LIST_COLUMN_AUTHOR',   2);
+define('LIST_COLUMN_YEAR',     3);
+define('LIST_COLUMN_TITLE',    4);
 
 //
 // Gey the list of
 // uploaded files.
 //
 function do_get_list($sort_first_class) {
-    global $mysql_table, $pageid;
+    global $pageid;
     
     $r = new stdClass();
 
@@ -22,12 +21,13 @@ function do_get_list($sort_first_class) {
     // come first. Then sort by year and title.
 
     $stmt = db_prepare(
-        "SELECT a.class, a.id, a.sender, a.author, a.year, a.title " .
-        "FROM $mysql_table a JOIN " .
-        "(SELECT class, count(*) AS freq FROM $mysql_table WHERE pageid=? GROUP BY class) b " .
+        "SELECT a.class, a.id, a.author, a.year, a.title " .
+        "FROM %s a JOIN " .
+        "(SELECT class, count(*) AS freq FROM %s WHERE pageid=? GROUP BY class) b " .
         "ON a.class = b.class " .
         "WHERE a.pageid=? " .
-        "ORDER BY a.class <> ?, b.freq desc, a.year desc, a.title");
+        "ORDER BY a.class <> ?, b.freq desc, a.year desc, a.title",
+        DB_TABLE_TEXTS, DB_TABLE_TEXTS);
 
     db_bind_param3($stmt, "iis", $pageid, $pageid, $sort_first_class);
     db_execute($stmt);
@@ -44,15 +44,15 @@ function do_get_list($sort_first_class) {
 }
 
 function do_show() {
-    global $mysql_table;
-    
     $r = new stdClass();
 
     $r->id = (int) filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
     if (!$r->id)
         return PAGE_RECORD_NOT_FOUND;
 
-    $stmt = db_prepare("SELECT author, year, title, sender, uploaded, content FROM $mysql_table WHERE id = ?");
+    $stmt = db_prepare(
+        "SELECT author, year, title, sender, uploaded, content FROM %s WHERE id = ?",
+        DB_TABLE_TEXTS);
     db_bind_param($stmt, "i", $r->id);
     db_execute($stmt);
     db_store_result($stmt);

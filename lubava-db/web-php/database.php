@@ -130,6 +130,9 @@ echo <<<EOT
 <body bgcolor="#FFFFFF" link="#000000" alink="#000000" vlink="#000000">
 EOT;
 
+//phpinfo();
+//log_err('TEST - %d', 100);
+
 //
 // Display login/logout form
 //
@@ -189,7 +192,6 @@ if ($mode == "list") {
         foreach ($r->rows as $row) {
             $r_class    = $row[LIST_COLUMN_CLASS];
             $r_id       = $row[LIST_COLUMN_ID];
-            $r_can_edit = can_edit_for_sender($row[LIST_COLUMN_SENDER]);
             $r_author   = $row[LIST_COLUMN_AUTHOR];
             $r_year     = $row[LIST_COLUMN_YEAR];
             $r_title    = $row[LIST_COLUMN_TITLE];

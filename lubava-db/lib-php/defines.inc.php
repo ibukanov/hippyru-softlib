@@ -3,8 +3,8 @@
 
 $static_path = "/db-static";
 
-$mysql_table        = "texts";
-$mysql_table_users  = "txtusers";         
+define('DB_TABLE_TEXTS', 'texts');
+define('DB_TABLE_USERS', 'txtusers');
 
 $url_me = $_SERVER['SCRIPT_NAME'];    
 

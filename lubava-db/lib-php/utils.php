@@ -1,11 +1,9 @@
 <?php
 $error_messages = array();
 
-function get_std_err() {
-    global $stderr;
-    if (!isset($stderr))
-        $stderr = fopen('php://stderr', 'w');
-    return $stderr;
+function get_log_path() {
+    $path = getenv('LOG_PATH');
+    return $path ? $path : 'php://stderr';
 }
 
 function log_err($msg) {
@@ -15,7 +13,7 @@ function log_err($msg) {
         array_shift($args);
         $msg = vsprintf($msg, $args);
     }
-    fprintf(get_std_err(), "ERROR: %s\n", $msg);
+    file_put_contents(get_log_path(), sprintf("ERROR: %s\n", $msg));
     array_push($error_messages, $msg);
 }
 
@@ -25,7 +23,7 @@ function log_info($msg) {
         array_shift($args);
         $msg = vsprintf($msg, $args);
     }
-    fprintf(get_std_err(), "%s\n", $msg);
+    file_put_contents(get_log_path(), $msg . "\n");
 }
 
 function uri_safe_base64($str) {
@@ -92,8 +90,8 @@ function db_connect() {
     
     $db = new mysqli($config['host'], $config['user'], $config['password'], $config['database']);
     if ($db->connect_errno) {
-        db_err(sprintf("Failed to connect to MySQL: (%d) %s",
-                    $db->connect_errno, $db->connect_error));
+        db_err(sprintf("Failed to connect to MySQL at %s: (%d) %s",
+                       $config['host'], $db->connect_errno, $db->connect_error));
         return null;
     }
 
@@ -109,6 +107,11 @@ function db_connect() {
 function db_query($sql) {
     if (!isset($sql) || !($db = db_connect()))
         return null;
+    if (func_num_args() > 1) {
+        $args = func_get_args();
+        array_shift($args);
+        $sql = vsprintf($sql, $args);
+    }
     $status = $db->query($sql);
     if ($status === false) {
         db_err(sprintf("query(%s) failed: (%d) %s", $sql, $db->errno, $db->error));
@@ -120,6 +123,11 @@ function db_query($sql) {
 function db_prepare($sql) {
     if (!isset($sql) || !($db = db_connect()))
         return null;
+    if (func_num_args() > 1) {
+        $args = func_get_args();
+        array_shift($args);
+        $sql = vsprintf($sql, $args);
+    }
     $stmt = $db->prepare($sql);
     if (!$stmt) {
         db_err(sprintf("prepare(%s) failed: (%d) %s", $sql, $db->errno, $db->error));

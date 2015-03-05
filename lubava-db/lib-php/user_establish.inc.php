@@ -40,11 +40,10 @@ function can_edit_for_sender($sender) {
 }
 
 function get_user_info($login) {
-    global $mysql_table_users;
-
     $ui = new stdClass();
-    $stmt = db_prepare("SELECT name, passhash, cookiesalt, access " .
-                       "FROM $mysql_table_users WHERE nickname=?");
+    $stmt = db_prepare(
+        "SELECT name, passhash, cookiesalt, access " .
+        "FROM %s WHERE nickname=?", DB_TABLE_USERS);
     db_bind_param($stmt, "s", $login);
     db_execute($stmt);
     db_bind_result4($stmt, $ui->name, $ui->passhash, $ui->cookiesalt, $ui->access);
@@ -117,14 +116,14 @@ function user_login($user, $pass) {
 }
 
 function user_logout() {
-    global $strUserName, $mysql_table_users;
+    global $strUserName;
 
     drop_login_cookie();
 
     # Logout all sessions by changing the hmac secret for the login cookie.
     if ($strUserName && $strUserName !== "guest") {
         $salt = openssl_random_pseudo_bytes(6);
-        $stmt = db_prepare("UPDATE $mysql_table_users SET cookiesalt=? WHERE nickname=?");
+        $stmt = db_prepare("UPDATE %s SET cookiesalt=? WHERE nickname=?", DB_TABLE_USERS);
         db_bind_param2($stmt, "ss", $salt, $strUserName);
         db_execute($stmt);
         $naffected = db_affected_rows($stmt);
