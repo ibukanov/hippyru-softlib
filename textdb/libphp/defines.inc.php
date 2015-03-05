@@ -1,7 +1,7 @@
 <?php
 /** * contains various definitions */
 
-$static_path = "/db-static";
+$static_path = "/textdb";
 
 define('DB_TABLE_TEXTS', 'texts');
 define('DB_TABLE_USERS', 'txtusers');

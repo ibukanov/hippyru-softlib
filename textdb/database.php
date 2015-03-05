@@ -1,10 +1,10 @@
 <?php
     define ("INCLUDE_LEGAL", TRUE);
 
-    require_once "../lib-php/defines.inc.php";
-    require_once "../lib-php/utils.php";
-    require_once "../lib-php/session.php";
-    require_once "../lib-php/user_establish.inc.php";
+    require_once "libphp/defines.inc.php";
+    require_once "libphp/utils.php";
+    require_once "libphp/session.php";
+    require_once "libphp/user_establish.inc.php";
 
 if (isset  ($_GET["mode"])) {
     $mode = filter_input (INPUT_GET, "mode", FILTER_SANITIZE_STRING);
@@ -176,7 +176,7 @@ if ($mode == "list") {
 // Display the list of
 // uploaded files.
 //
-    require_once ("../lib-php/show.php");
+    require_once ("libphp/show.php");
 
     $r = do_get_list('Тексты');
     if (!is_object($r)) {
@@ -222,7 +222,7 @@ if ($mode == "list") {
 //
 // Form for text uploading.
 //
-    require_once ("../lib-php/edit.php");
+    require_once ("libphp/edit.php");
 
     $r = do_edit();
     if (!is_object($r)) {
@@ -309,7 +309,7 @@ EOT;
 //
 // Delete specific text
 //
-    require_once ("../lib-php/edit.php");
+    require_once ("libphp/edit.php");
 
     $r = do_delete();
     if (!is_object($r)) {
@@ -346,7 +346,7 @@ EOT;
 //
 // Show specific text
 //
-    require_once ("../lib-php/show.php");
+    require_once ("libphp/show.php");
     $r = do_show();
     if (!is_object($r)) {
         write_error_html($r);
@@ -373,7 +373,7 @@ EOT;
 //
 // Upload the file on server.
 //
-    require_once ("../lib-php/edit.php");
+    require_once ("libphp/edit.php");
 
     $r = do_upload();
     if (!is_object($r)) {
