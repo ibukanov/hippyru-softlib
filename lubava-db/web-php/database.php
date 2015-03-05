@@ -125,7 +125,6 @@ echo <<<EOT
     <meta charset="utf-8"/>
     <title>$g_PageTitles[$pageid]</title>
     <link rel="stylesheet" type="text/css" href="$static_path/css/db.css">
-    <script src="$static_path/js/lib.js"></script>
 </head>
 <body bgcolor="#FFFFFF" link="#000000" alink="#000000" vlink="#000000">
 EOT;
@@ -297,6 +296,7 @@ EOT;
 <script src="/ckeditor/ckeditor.js"></script>
 <script type="text/javascript" src="$static_path/js/edit.js" charset="utf-8"></script>
 <script>
+on_edit_page();
 </script>
 
 <hr>
@@ -321,7 +321,7 @@ EOT;
             echo <<<EOT
 <div align='center' class='style2' style='text-align: center'>
 <b>Вы действительно хотите удалить запись $title?</b><br><br>
-<form style='display: inline' method='POST' onsubmit='return set_post_key(this)'>
+<form id='confirm_delete_form' style='display: inline' method='POST'>
 <button type='submit' name='confirmed' value='1'>Да</button>
 </form>
 <form style='display: inline' action='$url_me' method='get'>
@@ -331,6 +331,10 @@ EOT;
 </form>
 </div>
 <br><br>
+<script type="text/javascript" src="$static_path/js/edit.js" charset="utf-8"></script>
+<script>
+on_delete_page();
+</script>
 EOT;
         } else {
             echo "<p align='center' class='style2'><b>Запись $title благополучно удалена.</b></p><br>";
