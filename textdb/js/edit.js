@@ -126,7 +126,8 @@ function on_edit_page() {
 
     CKEDITOR.replace('text_content', {
         language: 'ru',
-        enterMode: CKEDITOR.ENTER_BR
+        enterMode: CKEDITOR.ENTER_BR,
+        height: '400px',
     });
     
     document.getElementById('edit_form').onsubmit = function() {
