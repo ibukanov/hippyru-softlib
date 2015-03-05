@@ -238,14 +238,8 @@ if ($mode == "list") {
         }
 
     echo <<<EOT
-<script type="text/javascript">
-    var _editor_url  = "/xinha_txtarea/";
-    var _editor_lang = "ru";
-</script>
-<script type="text/javascript" src="xinha_txtarea/XinhaCore.js"></script>
-<script type="text/javascript" src="$static_path/js/edit.js" charset="utf-8"></script>
 
-    <form enctype="multipart/form-data" action="$url_me" method="post" onsubmit="return check_fields(this) && set_post_key(this);">
+    <form id="edit_form" enctype="multipart/form-data" action="$url_me" method="post">
     <input type="hidden" name="epost" value="upload" />
     <input type="hidden" name="id" value="$r->id" />
     <input type="hidden" name="pageid" value="$r->pageid" />
@@ -290,7 +284,7 @@ EOT;
     </tr>
     <tr valign="top">
         <td align="left"><span class='style2'>Текст</span>$delete_link</td>
-        <td align="left"><textarea id="teContent" name="content" rows="20" cols="60">$r->content</textarea></td>
+        <td align="left"><textarea id="text_content" name="content" rows="30" cols="60">$r->content</textarea></td>
     </tr>
     <tr>
         <td></td>
@@ -299,6 +293,12 @@ EOT;
     </table>
     </center>
 </form>
+
+<script src="/ckeditor/ckeditor.js"></script>
+<script type="text/javascript" src="$static_path/js/edit.js" charset="utf-8"></script>
+<script>
+</script>
+
 <hr>
 $strBackUrl
 EOT;

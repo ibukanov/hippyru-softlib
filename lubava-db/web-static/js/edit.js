@@ -1,39 +1,3 @@
-var settings = null;
-
-xinha_editors = null;
-xinha_init    = null;
-xinha_config  = null;
-xinha_plugins = null;
-
-// Create Xinha text editor
-xinha_init = xinha_init ? xinha_init : function() {
-    xinha_plugins = xinha_plugins ? xinha_plugins : [
-        
-    ];
-
-    if (!Xinha.loadPlugins (xinha_plugins, xinha_init)) {
-        return;
-    }
-
-    xinha_editors = xinha_editors ? xinha_editors : [
-        'teContent'
-    ];
-
-    xinha_config  = xinha_config ? xinha_config : new Xinha.Config ();
-
-    xinha_config.width  = '600px';
-    xinha_config.height = '480px';
-    xinha_config.statusBar   = false;
-    xinha_config.showLoading = true;
-
-    xinha_editors = Xinha.makeEditors (xinha_editors, xinha_config);
-
-    Xinha.startEditors (xinha_editors);
-    window.onload = null;
-}
-
-window.onload = xinha_init;
-
 // Input check script 
 function check_fields (form) {
     var h   = null;
@@ -49,4 +13,12 @@ function check_fields (form) {
     }
 
     return true;
+}
+
+CKEDITOR.replace('text_content', {
+  language: 'ru',
+});
+
+document.getElementById('edit_form').onsubmit = function() {
+    return check_fields(this) && set_post_key(this);
 }
