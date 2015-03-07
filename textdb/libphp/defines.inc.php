@@ -6,6 +6,8 @@ $static_path = "/textdb";
 define('DB_TABLE_TEXTS', 'texts');
 define('DB_TABLE_USERS', 'txtusers');
 
+define('COOKIE_EXPIRATION_TIME', 12 * 3600);
+
 $url_me = $_SERVER['SCRIPT_NAME'];    
 
 // Заголовки страниц

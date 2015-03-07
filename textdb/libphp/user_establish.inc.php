@@ -40,6 +40,8 @@ function can_edit_for_sender($sender) {
 }
 
 function get_user_info($login) {
+    if (!isset($login))
+        return;
     $ui = new stdClass();
     $stmt = db_prepare(
         "SELECT name, passhash, cookiesalt, access " .
@@ -71,32 +73,39 @@ function drop_login_cookie() {
     setcookie('u', '', 1, '', '', true, true);
 }
 
-function check_login_cookie() {
+function check_login_cookie($refresh) {
     global $eUserAccess, $strUserName_Full, $strUserName;
 
     if (!isset($_COOKIE['u']))
         return;
 
-    $cookie = $_COOKIE['u'];
-    $user = session\parse_cookie_user($cookie);
-    if (!$user)
-        return;
+    do {
+        $cookie = new session\Cookie($_COOKIE['u']);
+        $cookie->parse_user();
+        $user_info = get_user_info($cookie->user);
 
-    $user_info = get_user_info($user);
+        // TODO report DB errors
+        if (!is_object($user_info))
+            break;
 
-    // TODO report DB errors
-    if (is_object($user_info)) {
-        $cookie_info = session\parse_cookie($cookie, $user_info->passhash,
-                                            get_hmac_secret($user_info));
-        if ($cookie_info->expiration > time()) {
-            $eUserAccess      = $user_info->access;
-            $strUserName_Full = $user_info->name;
-            $strUserName      = $user;
-        } else {
-            // Invalidate the ID.
-            drop_login_cookie();
+        $cookie->validate($user_info->passhash, get_hmac_secret($user_info));
+        $time = time();
+        if ((int) $cookie->expiration < $time)
+            break;
+        
+        $eUserAccess      = $user_info->access;
+        $strUserName_Full = $user_info->name;
+        $strUserName      = $user;
+
+        if ($refresh) {
+            $new_expiration = $time + COOKIE_EXPIRATION_TIME;
+            set_login_cookie($cookie->refresh($new_expiration), $new_expiration);
         }
-    }
+        return;
+    } while (false);
+
+    // Invalidate the ID.
+    drop_login_cookie();
 }
 
 /// Returns 0, if login is successful.
@@ -105,7 +114,7 @@ function user_login($user, $pass) {
     if (!is_object($user_info))
         return $user_info;
 
-    $expiration = time() + 12 * 3600;
+    $expiration = time() + COOKIE_EXPIRATION_TIME;
     $cookie = session\verify_password($user, $pass, $expiration,
                                       $user_info->passhash, get_hmac_secret($user_info));
     if (!isset($cookie))
@@ -142,7 +151,5 @@ function check_post_key() {
     global $saved_pkey_cookie;
     return isset($_POST["pkey"]) && $_POST["pkey"] === $saved_pkey_cookie;
 }
-
-check_login_cookie();
 
 ?>

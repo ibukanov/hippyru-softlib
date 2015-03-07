@@ -87,7 +87,7 @@ if ($pageid_s != "") {
 
 $should_show_err = 0;
 
-check_login_cookie();
+check_login_cookie($mode === 'edit');
 
 // If user
 // tries to log in...
