@@ -57,12 +57,16 @@ function get_user_info($login) {
 }
 
 function get_hmac_secret($user_info) {
+    global $weblogin_seed;
+    
     if (!isset($user_info->cookiesalt))
-        return null;
-    $secret = u_read_file("/area/weblogin/lubava.info.seed");
-    if (!isset($secret))
-        return null;
-    return $secret . $user_info->cookiesalt;
+        return;
+    if (!isset($weblogin_seed)) {
+        $weblogin_seed = u_read_file(get_config()->weblogin_seed_file);
+        if (!isset($weblogin_seed))
+            return;
+    }
+    return $weblogin_seed . $user_info->cookiesalt;
 }
 
 function set_login_cookie($value, $expiration) {
