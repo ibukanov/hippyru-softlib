@@ -45,7 +45,7 @@ function get_user_info($login) {
     $ui = new stdClass();
     $stmt = db_prepare(
         "SELECT name, passhash, cookiesalt, access " .
-        "FROM %s WHERE nickname=?", DB_TABLE_USERS);
+        "FROM %s WHERE nickname=?", DEFS_DB_TABLE_USERS);
     db_bind_param($stmt, "s", $login);
     db_execute($stmt);
     db_bind_result4($stmt, $ui->name, $ui->passhash, $ui->cookiesalt, $ui->access);
@@ -57,16 +57,9 @@ function get_user_info($login) {
 }
 
 function get_hmac_secret($user_info) {
-    global $weblogin_seed;
-    
     if (!isset($user_info->cookiesalt))
         return;
-    if (!isset($weblogin_seed)) {
-        $weblogin_seed = u_read_file(get_config()->weblogin_seed_file);
-        if (!isset($weblogin_seed))
-            return;
-    }
-    return $weblogin_seed . $user_info->cookiesalt;
+    return DEF_LOGIN_SEED . $user_info->cookiesalt;
 }
 
 function set_login_cookie($value, $expiration) {
@@ -99,10 +92,10 @@ function check_login_cookie($refresh) {
         
         $eUserAccess      = $user_info->access;
         $strUserName_Full = $user_info->name;
-        $strUserName      = $user;
+        $strUserName      = $cookie->user;
 
         if ($refresh) {
-            $new_expiration = $time + COOKIE_EXPIRATION_TIME;
+            $new_expiration = $time + DEFS_LOGIN_DURATION;
             set_login_cookie($cookie->refresh($new_expiration), $new_expiration);
         }
         return;
@@ -118,7 +111,7 @@ function user_login($user, $pass) {
     if (!is_object($user_info))
         return $user_info;
 
-    $expiration = time() + COOKIE_EXPIRATION_TIME;
+    $expiration = time() + DEFS_LOGIN_DURATION;
     $cookie = session\verify_password($user, $pass, $expiration,
                                       $user_info->passhash, get_hmac_secret($user_info));
     if (!isset($cookie))
@@ -136,7 +129,7 @@ function user_logout() {
     # Logout all sessions by changing the hmac secret for the login cookie.
     if ($strUserName && $strUserName !== "guest") {
         $salt = openssl_random_pseudo_bytes(6);
-        $stmt = db_prepare("UPDATE %s SET cookiesalt=? WHERE nickname=?", DB_TABLE_USERS);
+        $stmt = db_prepare("UPDATE %s SET cookiesalt=? WHERE nickname=?", DEFS_DB_TABLE_USERS);
         db_bind_param2($stmt, "ss", $salt, $strUserName);
         db_execute($stmt);
         $naffected = db_affected_rows($stmt);

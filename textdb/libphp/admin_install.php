@@ -16,7 +16,7 @@ db_query(
     "content longblob NOT NULL, " .
     "PRIMARY KEY (id)) " .
     "DEFAULT CHARSET=utf8",
-    DB_TABLE_TEXTS);
+    DEFS_DB_TABLE_TEXTS);
 
 // Create table for users
 db_query(
@@ -30,11 +30,11 @@ db_query(
     "cookiesalt varbinary(32) NOT NULL, " .
     "PRIMARY KEY (id), UNIQUE (nickname)) " .
     "DEFAULT CHARSET=utf8",
-    DB_TABLE_USERS);
+    DEFS_DB_TABLE_USERS);
 
 // Fill initial user-data
 db_query(
     "INSERT INTO %s VALUES (NULL, 'Любава', 'lubava', '', 3, 1172778442, X'00')",
-    DB_TABLE_USERS);
+    DEFS_DB_TABLE_USERS);
 
 ?>

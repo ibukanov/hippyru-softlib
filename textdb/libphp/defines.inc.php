@@ -3,10 +3,10 @@
 
 $static_path = "/textdb";
 
-define('DB_TABLE_TEXTS', 'texts');
-define('DB_TABLE_USERS', 'txtusers');
+!defined('DEFS_DB_TABLE_TEXTS') && define('DEFS_DB_TABLE_TEXTS', 'texts');
+!defined('DEFS_DB_TABLE_USERS') && define('DEFS_DB_TABLE_USERS', 'txtusers');
 
-define('COOKIE_EXPIRATION_TIME', 12 * 3600);
+!defined('DEFS_LOGIN_DURATION') && define('DEFS_LOGIN_DURATION', 12 * 3600);
 
 $url_me = $_SERVER['SCRIPT_NAME'];    
 

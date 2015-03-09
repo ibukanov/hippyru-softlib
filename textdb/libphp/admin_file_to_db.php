@@ -3,17 +3,17 @@ require "defines.inc.php";
 require "utils.php";
 
 //*
-db_query("ALTER TABLE %s DROP contents", DB_TABLE_TEXTS);
+db_query("ALTER TABLE %s DROP contents", DEFS_DB_TABLE_TEXTS);
 if (!db_ok())
     die();
 //*/
 
 //*
-db_query("ALTER TABLE %s ADD (content longtext NOT NULL)", DB_TABLE_TEXTS);
+db_query("ALTER TABLE %s ADD (content longtext NOT NULL)", DEFS_DB_TABLE_TEXTS);
 if (!db_ok())
     die();
 //*/
-$stmt = db_prepare("SELECT id FROM %s", DB_TABLE_TEXTS);
+$stmt = db_prepare("SELECT id FROM %s", DEFS_DB_TABLE_TEXTS);
 db_execute($stmt);
 db_bind_result($stmt, $r_id);
 $ids = array();
@@ -24,7 +24,7 @@ db_close($stmt);
 if (!db_ok())
     die();
 
-$stmt = db_prepare("SELECT count(id) FROM %s", DB_TABLE_TEXTS);
+$stmt = db_prepare("SELECT count(id) FROM %s", DEFS_DB_TABLE_TEXTS);
 db_execute($stmt);
 db_bind_result($stmt, $db_count);
 db_fetch($stmt);
@@ -52,7 +52,7 @@ for ($i = 0; $i < $n; $i += 1) {
 }
 
 for ($i = 0; $i < $n; $i += 1) {
-    $stmt = db_prepare("UPDATE %s SET content=? WHERE id=?", DB_TABLE_TEXTS);
+    $stmt = db_prepare("UPDATE %s SET content=? WHERE id=?", DEFS_DB_TABLE_TEXTS);
     db_bind_param2($stmt, "si", $texts[$i], $ids[$i]);
     db_execute($stmt);
     $affected = db_affected_rows($stmt);
@@ -62,7 +62,7 @@ for ($i = 0; $i < $n; $i += 1) {
 
 $bad = false;
 for ($i = 0; $i < $n; $i += 1) {
-    $stmt = db_prepare("SELECT content FROM %s WHERE id=?", DB_TABLE_TEXTS);
+    $stmt = db_prepare("SELECT content FROM %s WHERE id=?", DEFS_DB_TABLE_TEXTS);
     db_bind_param($stmt, "i", $ids[$i]);
     db_execute($stmt);
     db_store_result($stmt);

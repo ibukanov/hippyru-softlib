@@ -27,7 +27,7 @@ function do_get_list($sort_first_class) {
         "ON a.class = b.class " .
         "WHERE a.pageid=? " .
         "ORDER BY a.class <> ?, b.freq desc, a.year desc, a.title",
-        DB_TABLE_TEXTS, DB_TABLE_TEXTS);
+        DEFS_DB_TABLE_TEXTS, DEFS_DB_TABLE_TEXTS);
 
     db_bind_param3($stmt, "iis", $pageid, $pageid, $sort_first_class);
     db_execute($stmt);
@@ -52,7 +52,7 @@ function do_show() {
 
     $stmt = db_prepare(
         "SELECT author, year, title, sender, uploaded, content FROM %s WHERE id = ?",
-        DB_TABLE_TEXTS);
+        DEFS_DB_TABLE_TEXTS);
     db_bind_param($stmt, "i", $r->id);
     db_execute($stmt);
     db_store_result($stmt);

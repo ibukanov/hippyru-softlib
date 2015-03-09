@@ -11,7 +11,7 @@ function update_password($user, $password) {
     }
 
     $hash = session\get_password_storage_hash($password);
-    $stmt = db_prepare("UPDATE %s SET passhash=? WHERE nickname=?", DB_TABLE_USERS);
+    $stmt = db_prepare("UPDATE %s SET passhash=? WHERE nickname=?", DEFS_DB_TABLE_USERS);
     db_bind_param2($stmt, "ss", $hash, $user);
     db_execute($stmt);
     $naffected = db_affected_rows($stmt);

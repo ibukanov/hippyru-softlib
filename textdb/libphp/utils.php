@@ -2,8 +2,7 @@
 $error_messages = array();
 
 function get_log_path() {
-    $path = getenv('LOG_PATH');
-    return $path ? $path : 'php://stderr';
+    defined('DEF_LOG_PATH') ? DEF_LOG_PATH : 'php://stderr';
 }
 
 function log_err($msg) {
@@ -40,28 +39,6 @@ function u_read_file($path) {
     return $str;
 }
 
-function get_config() {
-    global $custom_config;
-
-    if (isset($custom_config))
-        return $custom_config;
-
-    $config_path = getenv('CUSTOM_CONFIG');
-    if (!$config_path) {
-        log_err("environment variable CUSTOM_CONFIG is not set or empty");
-        return;
-    }
-    $config_text = u_read_file($config_path);
-    if (!isset($config_text))
-        return;
-    $custom_config = json_decode($config_text);
-    if (!isset($custom_config)) {
-        log_err("Failed to parse the configuration in $config_path as JSON file:\n$config_text");
-        return;
-    }
-    return $custom_config;
-}
-
 $db_connection = null;
 
 // Number of DB errors after successful db_connect()
@@ -91,35 +68,22 @@ function db_connect() {
             return null;
         return $db_connection;
     }
-    
-    $config = get_config();
-    if (!$config) {
-        $db_errors += 1;
-        return null;
-    }
 
-    $password = null;
-    if (isset($config->db_password_file)) {
-        $password = u_read_file($config->db_password_file);
-        if (!isset($password)) {
-            $db_errors += 1;
-            return null;
+    $host = null;
+    $port = 0;
+    $socket = null;
+    if (defined('DEF_DB_HOST')) {
+        $host = DEF_DB_HOST;
+        if (defined('DEF_DB_PORT')) {
+            $port = DEF_DB_PORT;
         }
+    } elseif (defined('DEF_DB_PATH')) {
+        $socket = DEF_DB_PATH;
     }
-
-    if (isset($config->db_host)) {
-        $host = $config->db_host;
-        $port = $config->db_port;
-        $socket = null;
-    } else {
-        $host = null;
-        $port = 0;
-        $socket = $config->db_path;
-    }
-    $db = new mysqli($host, $config->db_user, $password, $config->db_name, $port, $socket);
+    $db = new mysqli($host, DEF_DB_USER, DEF_DB_PASSWORD, DEF_DB_NAME, $port, $socket);
     if ($db->connect_errno) {
-        db_err(sprintf("Failed to connect to MySQL at %s: (%d) %s",
-                       $host ? $host : $socket,
+        db_err(sprintf("Failed to connect to MySQL at '%s': (%d) %s",
+                       (isset($host) ? $host . ($port ? ':' . $port : '') : $socket),
                        $db->connect_errno, $db->connect_error));
         return null;
     }

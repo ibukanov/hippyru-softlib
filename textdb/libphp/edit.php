@@ -14,7 +14,7 @@ function do_edit() {
         $stmt = db_prepare(
             "SELECT pageid, author, year, title, sender, class, content " .
             "FROM %s WHERE id = ?",
-            DB_TABLE_TEXTS);
+            DEFS_DB_TABLE_TEXTS);
         db_bind_param($stmt, "i", $r->id);
         db_execute($stmt);
         db_store_result($stmt);
@@ -40,7 +40,7 @@ function do_edit() {
         $r->content   = "";
     }
 
-    $stmt = db_prepare("SELECT DISTINCT class FROM %s WHERE pageid=?", DB_TABLE_TEXTS);
+    $stmt = db_prepare("SELECT DISTINCT class FROM %s WHERE pageid=?", DEFS_DB_TABLE_TEXTS);
     db_bind_param($stmt, "i", $r->pageid);
     db_execute($stmt);
     db_bind_result($stmt, $r_class);
@@ -69,7 +69,7 @@ function do_upload() {
 
     $r->id = (int) filter_input(INPUT_POST, "id", FILTER_VALIDATE_INT);
     if ($r->id !== 0) {
-        $stmt = db_prepare("SELECT pageid from %s WHERE id=?", DB_TABLE_TEXTS);
+        $stmt = db_prepare("SELECT pageid from %s WHERE id=?", DEFS_DB_TABLE_TEXTS);
         db_bind_param($stmt, "i",$r->id);
         db_execute($stmt);
         db_bind_result($stmt, $r->pageid);
@@ -113,7 +113,7 @@ function do_upload() {
         $stmt = db_prepare(
             "UPDATE %s SET class=?, title=?, author=?, year=?, content=? " .
             "WHERE id=?",
-            DB_TABLE_TEXTS);
+            DEFS_DB_TABLE_TEXTS);
         $null = null;
         db_bind_param6($stmt, "sssibi",
                        $class_, $title, $author, $year, $null, $r->id);
@@ -127,7 +127,7 @@ function do_upload() {
         $stamp  = time ();
         $stmt = db_prepare(
             "INSERT INTO %s VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?)",
-            DB_TABLE_TEXTS);
+            DEFS_DB_TABLE_TEXTS);
         $null = null;
         db_bind_param8($stmt, 'ssssiiib',
                        $class_, $title, $author, $strUserName,
@@ -163,7 +163,7 @@ function do_delete() {
     if (!$r->id)
         return PAGE_RECORD_NOT_FOUND;
         
-    $stmt = db_prepare("SELECT title, sender FROM %s WHERE id=?", DB_TABLE_TEXTS);
+    $stmt = db_prepare("SELECT title, sender FROM %s WHERE id=?", DEFS_DB_TABLE_TEXTS);
     db_bind_param($stmt, "i", $r->id);
     db_execute($stmt);
     db_bind_result2($stmt, $r->title, $sender);
@@ -179,7 +179,7 @@ function do_delete() {
         return PAGE_NO_WRITE_ACCESS;
 
     if ($r->confirmed) {
-        $stmt = db_prepare("DELETE FROM %s WHERE id=?", DB_TABLE_TEXTS);
+        $stmt = db_prepare("DELETE FROM %s WHERE id=?", DEFS_DB_TABLE_TEXTS);
         db_bind_param($stmt, "i", $r->id);
         db_execute($stmt);
         $naffected = db_affected_rows($stmt);
