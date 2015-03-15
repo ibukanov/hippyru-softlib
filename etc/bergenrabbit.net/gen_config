@@ -6,7 +6,7 @@ user=bergenrabbit.net
 
 log "Generating PHP config for wordpress at $user"
 
-wp_keysalt_path="$(get_scratch_dir $user)/wp_keysalt"
+wp_keysalt_path="$(get_scratch_dir $user)/wp-keysalt"
 ensure_file_with_randoms 640 $((64*8)) "$wp_keysalt_path"
 
 keysalt=()
@@ -15,9 +15,11 @@ for ((i=0; i<8; i+=1)); do
     keysalt+=("$(dd "${dd_args[@]}" | print_binary_as_php_string_literal)")
 done
 
-load_php_db_info $user
+# Generate and link config
 
-write_php_auto_prepend $user <<EOF
+php_prepare_config_write "$user" wp-config.php
+
+php_write_config <<EOF
 <?php
 
 define('DB_HOST',     'localhost:$mysql_socket');
@@ -46,4 +48,9 @@ define('WP_ALLOW_MULTISITE', true);
 define('WPLANG', 'ru_RU');
 
 define('FORCE_SSL_LOGIN', true);
+
+require_once(ABSPATH . 'wp-settings.php');
 EOF
+
+rm -rf /www/extra_soft/wordpress/wp-config.php
+ln -s "$php_config_path" /www/extra_soft/wordpress/wp-config.php
