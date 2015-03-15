@@ -32,7 +32,7 @@ function get_password_storage_hash($password) {
     $authenticator = get_crypto_hash($auth_hash);
 
     # Use custom prefix not to coincide with anything that crypt accepts
-    return '$X$' . $salt . $authenticator;   
+    return '$X$' . $salt . $authenticator;
 }
 
 function parse_stored_hash_($stored_hash, &$salt, &$authenticator) {
@@ -54,30 +54,30 @@ function parse_stored_hash_($stored_hash, &$salt, &$authenticator) {
 function verify_password($user, $password, $expiration, $stored_hash, $hmac_secret) {
     if (!isset($user, $password, $expiration, $stored_hash, $hmac_secret))
         return;
-            
+
     if (!parse_stored_hash_($stored_hash, $salt, $authenticator))
         return;
 
     $check = crypt($password, $salt);
-    
+
     # More sanity check for $salt format
     if (strlen($check) !== 60 || substr_compare($check, $salt, 0, 29))
         return;
-    
+
     $auth_hash = substr($check, 29);
     $auth_hash = strtr($auth_hash, './', '-_');
-    
+
     if (!check_crypto_hash($auth_hash, $authenticator))
         return;
-    
+
     return build_cookie_($user, $auth_hash, $expiration, $hmac_secret);
 }
 
 function build_cookie_($user, $auth_hash, $expiration, $hmac_secret) {
     $user_str = str_replace('.', '%2E', urlencode($user));
-    
+
     $expiration_str = base_convert(strval($expiration), 10, 36);
-    
+
     $payload = sprintf("%s.%s.%s", $user_str, $auth_hash, $expiration_str);
     $hmac = get_crypto_hmac($payload, $hmac_secret);
     return $payload . '.' . $hmac;
@@ -102,7 +102,7 @@ class Cookie {
         $dot1 = strpos($this->cookie, '.');
         if ($dot1 === false || $dot1 === 0)
             return;
-        
+
         $this->user = urldecode(substr($this->cookie, 0, $dot1));
         $this->dot1 = $dot1;
     }
@@ -136,7 +136,7 @@ class Cookie {
     function refresh($new_expiration) {
         if (!isset($new_expiration, $this->auth_hash))
             return;
-        
+
         return build_cookie_($this->user, $this->auth_hash, $new_expiration,
                              $this->hmac_secret);
     }

@@ -2,7 +2,7 @@
 $error_messages = array();
 
 function get_log_path() {
-    defined('DEF_LOG_PATH') ? DEF_LOG_PATH : 'php://stderr';
+    return (PHP_SAPI !== 'cli') ? DEF_LOG_PATH : 'php://stderr';
 }
 
 function log_err($msg) {
@@ -12,7 +12,8 @@ function log_err($msg) {
         array_shift($args);
         $msg = vsprintf($msg, $args);
     }
-    file_put_contents(get_log_path(), sprintf("ERROR: %s\n", $msg));
+    $text = sprintf("ERROR: %s\n", $msg);
+    file_put_contents(get_log_path(), $text);
     array_push($error_messages, $msg);
 }
 
@@ -22,7 +23,8 @@ function log_info($msg) {
         array_shift($args);
         $msg = vsprintf($msg, $args);
     }
-    file_put_contents(get_log_path(), $msg . "\n");
+    $text = $msg . "\n";
+    file_put_contents(get_log_path(), $text);
 }
 
 function uri_safe_base64($str) {

@@ -23,7 +23,6 @@ function update_password($user, $password) {
     }
 }
 
-
 $options = getopt("u:p");
 if ($options === false) {
     log_err('Bad usage');
