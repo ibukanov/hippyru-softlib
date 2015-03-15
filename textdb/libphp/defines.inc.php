@@ -8,8 +8,6 @@ $static_path = "/textdb";
 
 !defined('DEFS_LOGIN_DURATION') && define('DEFS_LOGIN_DURATION', 12 * 3600);
 
-$url_me = $_SERVER['SCRIPT_NAME'];    
-
 // Заголовки страниц
 $g_PageTitles = array(
     "Тексты",

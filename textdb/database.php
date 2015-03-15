@@ -6,23 +6,28 @@
     require_once "libphp/session.php";
     require_once "libphp/user_establish.inc.php";
 
-if (isset  ($_GET["mode"])) {
-    $mode = filter_input (INPUT_GET, "mode", FILTER_SANITIZE_STRING);
-} else if (isset  ($_POST["epost"])) {
-    $mode = filter_input (INPUT_POST, "epost", FILTER_SANITIZE_STRING);
-} else {
-    $mode = "list";
-}
+function parse_mode() {
+    global $mode, $path_info, $original_path_info;
 
-// Remove pkey cookie before we write any HTML
-$saved_pkey_cookie = null;
-if (isset($_COOKIE['pkey'])) {
-    $saved_pkey_cookie = $_COOKIE['pkey'];
-    if (strlen($saved_pkey_cookie) < 8) {
-        # Require sufficiently long key
-        $saved_pkey_cookie = null;
+    $mode = 'not_found';
+    $path_info = $_SERVER['PATH_INFO'];
+    $last_slash = strrpos($path_info, '/');
+    if ($last_slash !== false) {
+        $offset = $last_slash + 1;
+        if (substr_compare($path_info, 'login', $offset) === 0) {
+            $mode = 'login';
+            $original_path_info = substr($path_info, 0, $last_slash);
+        } elseif (substr_compare($path_info, 'logout', $offset) === 0) {
+            $mode = 'logout';
+            $original_path_info = substr($path_info, 0, $last_slash);
+        }
+    } elseif (isset($_GET["mode"])) {
+        $mode = filter_input (INPUT_GET, "mode", FILTER_SANITIZE_STRING);
+    } elseif (isset($_POST["epost"])) {
+        $mode = filter_input (INPUT_POST, "epost", FILTER_SANITIZE_STRING);
+    } else {
+        $mode = "list";
     }
-    setcookie('pkey', '', 1, '', '', true, false);
 }
 
 function write_error_html($page_error) {
@@ -68,6 +73,24 @@ function write_error_html($page_error) {
     printf("<hr>%s", $strBackUrl);
 }
 
+$url_me = $_SERVER['SCRIPT_NAME'];
+$query_part = $_SERVER['QUERY_STRING'];
+$if_query = $query_part ? '?' : '';
+
+
+parse_mode();
+
+// Remove pkey cookie before we write any HTML
+$saved_pkey_cookie = null;
+if (isset($_COOKIE['pkey'])) {
+    $saved_pkey_cookie = $_COOKIE['pkey'];
+    if (strlen($saved_pkey_cookie) < 8) {
+        # Require sufficiently long key
+        $saved_pkey_cookie = null;
+    }
+    setcookie('pkey', '', 1, '', '', true, false);
+}
+
 //
 // Determine the page to display
 //
@@ -89,31 +112,23 @@ $should_show_err = 0;
 
 check_login_cookie($mode === 'edit');
 
-// If user
-// tries to log in...
-if (isset($_POST['mode']) && $_POST['mode'] == 'login') {
-//
-// Try to log him in
-//
+if ($mode === 'login') {
     if (isset ($_POST["id"]) && isset ($_POST["pass"])) {
-       $should_show_err = user_login(
+        // Try to log the user in
+        $should_show_err = user_login(
            filter_input(INPUT_POST, "id",   FILTER_SANITIZE_STRING),
            filter_input(INPUT_POST, "pass", FILTER_SANITIZE_STRING));
        if (!$should_show_err) {
-           header ("Location: " . $url_me . "?pageid=$pageid");
-           exit();
+           header("Location: $url_me$original_path_info$if_query$query_part");
+           return;
        }
     }
-
-} else if ($mode == 'logout') {
-//
-// Log out.
-//
+} elseif ($mode === 'logout') {
     $should_show_err = user_logout();
     if (!$should_show_err) {
-        header ("Location: " . $url_me . "?pageid=$pageid");
-        exit();
-    }
+        header("Location: $url_me$original_path_info$if_query$query_part");
+        return;
+    }    
 }
 
 /************ DISPLAY THE HEADER **************/
@@ -132,37 +147,19 @@ EOT;
 //phpinfo();
 //log_err('TEST - %d', 100);
 
-//
-// Display login/logout form
-//
-if ($mode != "skip") {
-    // Check authorization
-    if ($strUserName != "guest") {
-    //
-    // Logged in.
-    //
-        echo "<div style='text-align: right'><a href='${url_me}?mode=logout&pageid=$pageid'>[Выйти ($strUserName)]</a></div>";
-    } else {
-    //
-    // Not logged in.
-    //
-        echo <<<EOT
-<!-- Login form -->
-<form enctype="multipart/form-data" action="$url_me" method="post">
-  <div style='text-align: right'>
-  <input type="hidden" name="epost" value="login" />
-  <input type="hidden" name="pageid" value="$pageid" />
-  <input type="hidden" name="mode" value="login" />
-  Логин:&nbsp;<input type="text" name="id" size='9'/> &nbsp;&nbsp;Пароль:&nbsp;<input type="password" name="pass" size='14'/> &nbsp;&nbsp;<input type="submit" value="Войти" />
-  </div>
-</form>
-EOT;
+if ($strUserName === "guest") {
+    // Add login
+    if ($mode !== 'login') {
+        echo "<div style='text-align: right'><a href='$url_me$path_info/login$if_query$query_part'>[Войти]</a></div>";
     }
+} else {
+    // Add logout
+    echo "<div style='text-align: right'><a href='$url_me$path_info/logout$if_query$query_part'>[Выйти ($strUserName)]</a></div>";
 }
 
 if ($should_show_err) {
     write_error_html($should_show_err);
-    $mode = "skip";
+    return;
 }
 
 /******************************************************/
@@ -171,7 +168,20 @@ if ($should_show_err) {
 
 $strBackUrl   = "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$pageid' class='noneline'>Назад</a></p>";
 
-if ($mode == "list") {
+if ($mode === 'login') {
+    $login_url = "$url_me$path_info$if_query$query_part";
+    echo <<<EOT
+<!-- Login form -->
+<form enctype="multipart/form-data" action="$login_url" method="post">
+  <div style='text-align: center'>
+  Логин:&nbsp;<input type="text" name="id" size='9'/><br>
+  Пароль:&nbsp;<input type="password" name="pass" size='14'/><br>
+  <input type="submit" value="Войти" />
+  </div>
+</form>
+EOT;
+
+} elseif ($mode == "list") {
 //
 // Display the list of
 // uploaded files.
@@ -183,7 +193,7 @@ if ($mode == "list") {
         write_error_html($r);
     } else {
         if (isWritePermitted()) {
-            echo "<p align='center' class='style2'><a href='${url_me}?mode=edit&pageid=$pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$pageid]."</a></p>";
+            echo "<div class='style2' style='text-align: left'><a href='${url_me}?mode=edit&pageid=$pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$pageid]."<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></div>";
         }
 
         $class = "";
@@ -360,7 +370,7 @@ EOT;
         }
 
         if (can_edit_for_sender($r->sender)) {
-            echo"<span class='style2'><a href='${url_me}?mode=edit&idx=$r->id&pageid=$pageid' class='noneline' style='vertical-align: top'>Редактировать&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></span>";
+            echo "<div class='style2'><a href='${url_me}?mode=edit&idx=$r->id&pageid=$pageid' class='noneline' style='vertical-align: top'>Редактировать&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></div>";
         }
         echo "<p class='style2'><b>$r->author</b></p>";
         echo "<p class='style2'><b><i>&nbsp;&nbsp;&nbsp;&nbsp;$r->title</i></b></p>";
@@ -392,7 +402,6 @@ EOT;
         echo "<hr>" . $strBackUrl;
     }
 
-} else if ($mode == "skip") {
 } else {
 //
 // Unknown mode.
