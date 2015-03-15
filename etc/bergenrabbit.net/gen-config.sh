@@ -1,10 +1,8 @@
 #!/bin/bash
 
-. /opt/setup_lib.sh
-
 user=bergenrabbit.net
 
-log "Generating PHP config for wordpress at $user"
+log "Preparing PHP config for wordpress at $user"
 
 wp_keysalt_path="$(get_scratch_dir $user)/wp-keysalt"
 ensure_file_with_randoms 640 $((64*8)) "$wp_keysalt_path"

@@ -1,10 +1,8 @@
 #!/bin/bash
 
-. /opt/setup_lib.sh
-
 user=lubava.info
 
-log "Generating textdb PHP config for $user"
+log "Preparing textdb PHP config for $user"
 
 login_seed_path="$(get_scratch_dir $user)/textdb-login-seed"
 ensure_file_with_randoms 640 64 "$login_seed_path"

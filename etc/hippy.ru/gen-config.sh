@@ -1,11 +1,9 @@
 #!/bin/bash
 
-. /opt/setup_lib.sh
-
 user=forum.hippy.ru
 forum_website=www.hippy.ru/forum
 
-log "Generating PHP config for $forum_website"
+log "Preparing PHP config for $forum_website"
 
 forum_cache="$(get_scratch_dir $user)/forum-cache/"
 mkdir -p "$forum_cache"

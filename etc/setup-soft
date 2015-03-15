@@ -1,0 +1,126 @@
+#!/bin/bash
+
+. /opt/lib.sh
+
+set -o pipefail
+
+tmp_files=()
+
+cleanup() {
+    if [[ ${#tmp_files[@]} -ge 1 ]]; then
+	rm -rf "${tmp_files[@]}"
+    fi
+}
+
+trap cleanup EXIT
+
+write_file_update=''
+write_file_count=0
+
+write_file() {
+    local mode=644 exec_cmd="" log_message="" log_message_default=""
+    local OPTIND opt path body dir
+
+    write_file_update=''
+    while getopts eLl:m:o: opt; do
+	case "$opt" in
+	    e ) exec_cmd=1;;
+	    L ) log_message_default=1;;
+	    l ) log_message="$OPTARG";;
+	    m ) mode="$OPTARG";;
+	    * ) err "bad write_file usage";;
+	esac
+    done
+    
+    shift $(($OPTIND - 1))
+    [[ $# -ge 1 ]] || err "write_file - missing path argument"
+    [[ $# -le 2 ]] || err "write_file - too many arguments"
+    [[ -z "$exec_cmd" || $# -ge 2 ]] || err "write_file - -e option requires command argument"
+    [[ -z "$log_message" || -z "$log_message_default" ]] || \
+	err "write_file - only one of -l , -L can be given"
+
+    path="$1"
+    shift
+
+    # bash cannot handle arbitrary binary data, so temporary encode them
+    if [[ $# -eq 0 ]]; then
+	body="$(base64)"
+	base64=1
+    elif [[ -n "$exec_cmd" ]]; then
+	body="$("$@" | base64)"
+    else
+	body="$(printf %s "$1"| base64)"
+    fi
+
+    while true; do
+	if [[ ! -f "$path" || -L "$path" ]]; then
+	    break;
+	fi
+	if [[ "$(stat -c %a "$path")" != "${mode}" ]]; then
+	    break;
+	fi
+	local old="$(base64 "$path")"
+	if [[ "$old" != "$body" ]]; then
+	    break;
+	fi
+
+	# No need to write anything
+	return
+    done
+
+    if [[ -n "$log_message" ]]; then
+	log "$log_message"
+    fi
+    if [[ -n "$log_message_default" ]]; then
+	log "Updating $path"
+    fi
+
+    # Use temporary to ensure atomic operation on filesystem
+    local tmp="$(mktemp "$path.XXXXXXXXXX")"
+    tmp_files+=("$tmp")
+    printf '%s' "$body" | base64 -d > "$tmp"
+    chmod "$mode" "$tmp"
+    mv -f "$tmp" "$path"
+
+    write_file_update=1
+    let write_file_count+=1
+}
+
+ensure_file_with_randoms() {
+    local mode="$1" size="$2" path="$3"
+
+    if [[ ! -e "$path" ]]; then
+	dd if=/dev/urandom bs="$size" count=1 status=none | write_file -L -m "$mode" "$path"
+    fi
+
+    local expected="$mode:$size"
+    local actual="$(stat --printf %a:%s "$path")"
+    if [[ "$actual" != "$expected" ]]; then
+	err "Wrong mode or size for $path:" \
+	    "expected=$expected actual=$actual" \
+	    "Either fix it or remove the file to regenerate with fresh random bytes."
+    fi
+}
+
+print_binary_as_php_string_literal() {
+    od -A n -v -t x1 - | sed -e 's/ /\\x/g' | tr -d '\n'
+}
+
+php_prepare_config_write() {
+    local user="$1" config_file="$2"
+    php_db_user="$(get_db_user "$user")"
+    php_db_password="$(< "$(get_db_password_file "$user")")"
+    php_db_name="$(get_db_name "$user")"
+    php_config_path="$(get_scratch_path "$user" "$config_file")"
+}
+
+php_write_config() {
+    write_file -m 640 -L "$php_config_path"
+}
+
+for name in bergenrabbit.net hippy.ru lubava.info; do
+    file="$soft/etc/$name/gen-config.sh"
+    if [[ -e "$file" ]]; then
+	source "$file"
+    fi
+done
