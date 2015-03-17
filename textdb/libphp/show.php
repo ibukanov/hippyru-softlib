@@ -12,11 +12,9 @@ define('LIST_COLUMN_TITLE',    4);
 // Gey the list of
 // uploaded files.
 //
-function do_get_list($sort_first_class) {
+function do_get_list(Page $page, $sort_first_class) {
     global $pageid;
     
-    $r = new stdClass();
-
     // Sort first by frequency of the class column but make $sort_first always
     // come first. Then sort by year and title.
 
@@ -36,37 +34,31 @@ function do_get_list($sort_first_class) {
     db_free($result);
     db_close($stmt);
     if (!db_ok())
-        return PAGE_DB_ERR; 
+        return PAGE_DB_ERR;
 
-    $r->rows = $rows;
-
-    return $r;
+    $page->rows = $rows;
 }
 
-function do_show() {
-    $r = new stdClass();
-
-    $r->id = (int) filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
-    if (!$r->id)
+function do_show(Page $page) {
+    $page->id = (int) filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
+    if (!$page->id)
         return PAGE_RECORD_NOT_FOUND;
 
     $stmt = db_prepare(
         "SELECT author, year, title, sender, uploaded, content FROM %s WHERE id = ?",
         DEFS_DB_TABLE_TEXTS);
-    db_bind_param($stmt, "i", $r->id);
+    db_bind_param($stmt, "i", $page->id);
     db_execute($stmt);
     db_store_result($stmt);
-    db_bind_result6($stmt, $r->author, $r->year, $r->title, $r->sender, $r->uploaded,
-                    $r->content);
+    db_bind_result6($stmt, $page->author, $page->year, $page->title, $page->sender,
+                    $page->uploaded, $page->content);
     db_fetch($stmt);
     db_close($stmt);
     if (!db_ok())
         return PAGE_DB_ERR; 
     
-    if (!isset($r->author))
+    if (!isset($page->author))
         return PAGE_RECORD_NOT_FOUND;
-
-    return $r;
 }
 
 ?>
