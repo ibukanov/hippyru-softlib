@@ -2,7 +2,7 @@
 $error_messages = array();
 
 function get_log_path() {
-    return (PHP_SAPI !== 'cli') ? DEF_LOG_PATH : 'php://stderr';
+    return defined('DEF_LOG_PATH') ? DEF_LOG_PATH : 'php://stderr';
 }
 
 function log_err($msg) {

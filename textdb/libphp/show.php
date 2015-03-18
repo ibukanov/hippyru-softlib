@@ -13,8 +13,6 @@ define('LIST_COLUMN_TITLE',    4);
 // uploaded files.
 //
 function do_get_list(Page $page, $sort_first_class) {
-    global $pageid;
-    
     // Sort first by frequency of the class column but make $sort_first always
     // come first. Then sort by year and title.
 
@@ -27,7 +25,7 @@ function do_get_list(Page $page, $sort_first_class) {
         "ORDER BY a.class <> ?, b.freq desc, a.year desc, a.title",
         DEFS_DB_TABLE_TEXTS, DEFS_DB_TABLE_TEXTS);
 
-    db_bind_param3($stmt, "iis", $pageid, $pageid, $sort_first_class);
+    db_bind_param3($stmt, "iis", $page->pageid, $page->pageid, $sort_first_class);
     db_execute($stmt);
     $result = db_get_result($stmt);
     $rows = db_fetch_all($result);

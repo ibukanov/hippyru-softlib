@@ -19,10 +19,5 @@ define('DEF_DB_USER',     '$php_db_user');
 define('DEF_DB_PASSWORD', '$php_db_password');
 define('DEF_DB_NAME',     '$php_db_name');
 
-define('DEF_LOG_PATH',    '$log_fifo');
-
 define('DEF_LOGIN_SEED',  "$login_seed");
 EOF
-
-rm -rf /www/soft/textdb/config.php
-ln -s "$php_config_path" /www/soft/textdb/config.php

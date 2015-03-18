@@ -1,9 +1,9 @@
 <?php
 
 function do_edit(Page $page) {
-    global $pageid, $strUserName_Full, $strUserName, $g_PageTitles;
+    global $g_PageTitles;
     
-    if (!isWritePermitted())
+    if (!$page->can_write())
         return PAGE_NO_WRITE_ACCESS;
 
     $page->id = (int) filter_input(INPUT_GET, "idx", FILTER_VALIDATE_INT);
@@ -25,16 +25,16 @@ function do_edit(Page $page) {
             return PAGE_DB_ERR;
         if (!isset($page->pageid))
             return PAGE_RECORD_NOT_FOUND;
-        if ($page->sender !== $strUserName && !isSuperuser())
+        if (!$page->can_edit_for_sender($page->sender))
             return PAGE_NO_WRITE_ACCESS;
     } else {
         $page->new_record = true;
-        $page->pageid    = $pageid;
-        $page->author    = $strUserName_Full;
+        $page->pageid    = $page->pageid;
+        $page->author    = $page->user_full_name;
         $page->year      = date ("Y", time ());;
         $page->title     = "";
-        $page->sender    = $strUserName;
-        $page->class     = $g_PageTitles[$pageid];
+        $page->sender    = $page->user_login;
+        $page->class     = $g_PageTitles[$page->pageid];
         $page->content   = "";
     }
 
@@ -53,12 +53,12 @@ function do_edit(Page $page) {
 }
 
 function do_upload(Page $page) {
-    global $g_PageTitles, $pageid, $strUserName_Full, $strUserName;
+    global $g_PageTitles, $strUserName;
 
-    if (!isWritePermitted())
+    if (!$page->can_write())
         return PAGE_NO_WRITE_ACCESS;
 
-    if (!check_post_key())
+    if (!$page->has_post_key())
         return PAGE_BAD_POST_KEY;
 
     $page->id = (int) filter_input(INPUT_POST, "id", FILTER_VALIDATE_INT);
@@ -74,7 +74,7 @@ function do_upload(Page $page) {
         if (!isset($page->pageid))
             return PAGE_RECORD_NOT_FOUND;
     } else {
-        $page->pageid = $pageid;
+        $page->pageid = $page->pageid;
     }
 
     $class_ = filter_input(INPUT_POST, "group_force", FILTER_SANITIZE_STRING);
@@ -97,7 +97,7 @@ function do_upload(Page $page) {
 
     $author = filter_input(INPUT_POST, "author", FILTER_SANITIZE_STRING);
     if (!$author) {
-        $author = $strUserName_Full;
+        $author = $page->user_full_name;
     }
 
     $content = filter_input(INPUT_POST, "content");
@@ -124,7 +124,7 @@ function do_upload(Page $page) {
             DEFS_DB_TABLE_TEXTS);
         $null = null;
         db_bind_param8($stmt, 'ssssiiib',
-                       $class_, $title, $author, $strUserName,
+                       $class_, $title, $author, $page->user_login,
                        $year, $stamp, $page->pageid, $null);
         $stmt->send_long_data(7, $content);
         db_execute($stmt);
@@ -140,13 +140,11 @@ function do_upload(Page $page) {
 }
 
 function do_delete(Page $page) {
-    global $strUserName, $pageid;
-    
-    if (!isWritePermitted())
+    if (!$page->can_write())
         return PAGE_NO_WRITE_ACCESS;
 
     $page->confirmed = isset($_POST["confirmed"]);
-    if ($page->confirmed && !check_post_key())
+    if ($page->confirmed && !$page->has_post_key())
         return PAGE_BAD_POST_KEY;
     
     $page->id = (int) filter_input(INPUT_GET, "idx", FILTER_VALIDATE_INT);
@@ -165,7 +163,7 @@ function do_delete(Page $page) {
         return PAGE_RECORD_NOT_FOUND;
 
     // Only owner or superuser can delete it.
-    if (!($strUserName === $sender || isSuperuser()))
+    if (!$page->can_edit_for_sender($sender))
         return PAGE_NO_WRITE_ACCESS;
 
     if ($page->confirmed) {

@@ -1,27 +1,63 @@
 <?php
-    define ("INCLUDE_LEGAL", TRUE);
-
+if (isset($_SERVER['TEXTDB_CONFIG'])) {
+    require_once $_SERVER['TEXTDB_CONFIG'];
+} else {
     require_once "config.php";
-    require_once "libphp/defines.inc.php";
-    require_once "libphp/utils.php";
-    require_once "libphp/session.php";
-    require_once "libphp/user_establish.inc.php";
+}
+require_once 'libphp/defines.inc.php';
+require_once 'libphp/utils.php';
+require_once 'libphp/session.php';
 
 class Page {
-    public $mode = '';
+
+    const ACCESS_BANNED    = 0;
+    const ACCESS_LEGAL     = 1;
+    const ACCESS_SUPERUSER = 2;
+    const ACCESS_ADMIN     = 3;
+
     public $error;
+    public $mode = '';
+    public $user_login = 'guest';
+    public $user_full_name = 'guest';
+    public $user_access = self::ACCESS_BANNED;
+    public $pageid = 0;
     public $location = '';
     public $show_login_logout = true;
-    
-    public function redirect($partial_url) {
+
+    private $saved_pkey_cookie;
+
+    private
+    function is_superuser() {
+        return ($this->user_access & self::ACCESS_SUPERUSER) === self::ACCESS_SUPERUSER;
+    }
+
+    public
+    function can_edit_for_sender($sender) {
+        return $this->is_superuser() || ($sender && $sender === $this->user_login);
+    }
+
+    public
+    function can_write() {
+        return ($this->user_access & self::ACCESS_LEGAL) === self::ACCESS_LEGAL;
+    }
+
+    public
+    function has_post_key() {
+        return isset($_POST["pkey"]) && $_POST["pkey"] === $this->saved_pkey_cookie;
+    }
+
+    public
+    function redirect($partial_url) {
         global $url_me;
 
         $this->location = $url_me . $partial_url;
     }
 }
 
-function parse_mode() {
-    global $page, $path_info, $original_path_info;
+require_once "libphp/user_establish.inc.php";
+
+function parse_page() {
+    global $page, $path_info, $original_path_info, $g_PageTitles;
 
     $page = new Page();
 
@@ -45,6 +81,28 @@ function parse_mode() {
     } else {
         $page->mode = 'list';
     }
+
+    $pageid_s = "";
+    if (isset ($_GET["pageid"]))  $pageid_s = $_GET["pageid"];
+    if (isset ($_POST["pageid"])) $pageid_s = $_POST["pageid"];
+    if ($pageid_s != "") {
+        if (is_numeric ($pageid_s)) {
+            $pageid = (int)$pageid_s;
+            if (0 <= $pageid && $pageid < count($g_PageTitles)) {
+                $page->pageid = $pageid;
+            }
+        }
+    }
+
+    // Remove pkey cookie if set after recoding it for form check later
+    if (isset($_COOKIE['pkey'])) {
+        $value = $_COOKIE['pkey'];
+        if (strlen($value) >= 8) {
+            # Require sufficiently long key
+            $page->saved_pkey_cookie = $value;
+        }
+        setcookie('pkey', '', 1, '', '', true, false);
+    }
 }
 
 function write_error_html($page_error) {
@@ -62,11 +120,11 @@ function do_login(Page $page) {
 
     if (isset($_POST["id"]) && isset($_POST["pass"])) {
         // Try to log the user in
-        $status = user_login(
+        $error = user_login(
            filter_input(INPUT_POST, "id",   FILTER_SANITIZE_STRING),
            filter_input(INPUT_POST, "pass", FILTER_SANITIZE_STRING));
-        if (is_int($status) && $status)
-            return $status;
+        if ($error)
+            return $error;
         $page->redirect("$original_path_info$if_query$query_part");
         return;
     }
@@ -77,9 +135,9 @@ function do_logout(Page $page) {
 
     $page->show_login_logout = false;
 
-    $status = user_logout();
-    if (is_int($status) && $status)
-        return $status;
+    $error = user_logout($page);
+    if ($error)
+        return $error;
     $page->redirect("$original_path_info$if_query$query_part");
 }
 
@@ -87,33 +145,9 @@ $url_me = $_SERVER['SCRIPT_NAME'];
 $query_part = $_SERVER['QUERY_STRING'];
 $if_query = $query_part ? '?' : '';
 
-parse_mode();
+parse_page();
 
-// Remove pkey cookie before we write any HTML
-$saved_pkey_cookie = null;
-if (isset($_COOKIE['pkey'])) {
-    $saved_pkey_cookie = $_COOKIE['pkey'];
-    if (strlen($saved_pkey_cookie) < 8) {
-        # Require sufficiently long key
-        $saved_pkey_cookie = null;
-    }
-    setcookie('pkey', '', 1, '', '', true, false);
-}
-
-$pageid = 0;
-$pageid_s = "";
-if (isset ($_GET["pageid"]))  $pageid_s = $_GET["pageid"];
-if (isset ($_POST["pageid"])) $pageid_s = $_POST["pageid"];
-if ($pageid_s != "") {
-    if (is_numeric ($pageid_s)) {
-        $pageid = (int)$pageid_s;
-        if ($pageid < 0 || $pageid >= count($g_PageTitles)) {
-            $pageid = 0;
-        }
-    }
-}
-
-check_login_cookie($page->mode === 'edit');
+check_login_cookie($page, $page->mode === 'edit');
 
 $error = null;
 if ($page->mode === 'login') {
@@ -160,23 +194,24 @@ echo <<<EOT
 <html>
 <head>
     <meta charset="utf-8"/>
-    <title>$g_PageTitles[$pageid]</title>
+    <title>{$g_PageTitles[$page->pageid]}</title>
     <link rel="stylesheet" type="text/css" href="$static_path/css/db.css">
 </head>
 <body bgcolor="#FFFFFF" link="#000000" alink="#000000" vlink="#000000">
 EOT;
 
 //phpinfo();
-//log_err('TEST - %d', 100);
+log_err('TEST - %d', 100);
+error_log('TEST 2');
 
-$strBackUrl   = "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$pageid' class='noneline'>Назад</a></p>";
+$strBackUrl   = "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$page->pageid' class='noneline'>Назад</a></p>";
 
 if (!$page->error && $page->show_login_logout) {
-    if ($strUserName === "guest") {
+    if ($page->user_login === "guest") {
         $text = '[Войти]';
         $url = "$url_me$path_info/login$if_query$query_part";
     } else {
-        $text = sprintf('[Выйти (%s)]', $strUserName);
+        $text = sprintf('[Выйти (%s)]', $page->user_login);
         $url = "$url_me$path_info/logout$if_query$query_part";
     }
     echo "<div style='text-align: right'><a href='$url'>$text</a></div>";
@@ -236,8 +271,8 @@ if ($page->error) {
 EOT;
 
 } elseif ($page->mode === 'list') {
-    if (isWritePermitted()) {
-        echo "<div class='style2' style='text-align: left'><a href='${url_me}?mode=edit&pageid=$pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$pageid]."<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></div>";
+    if ($page->can_write()) {
+        echo "<div class='style2' style='text-align: left'><a href='${url_me}?mode=edit&pageid=$page->pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$page->pageid]."<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></div>";
     }
     
     $class = "";
@@ -264,7 +299,7 @@ EOT;
         }
         
         echo "<td align='center'><font class='style2'>";
-        echo "<a href='$url_me?mode=showtext&idx=$r_id&pageid=$pageid' class='noneline'>$r_title</a>";
+        echo "<a href='$url_me?mode=showtext&idx=$r_id&pageid=$page->pageid' class='noneline'>$r_title</a>";
         echo "</font></td>";
         echo "</tr>";
     }
@@ -278,7 +313,7 @@ EOT;
         $delete_link = "";
     } else {
         $butTitle = "Сохранить";
-        $delete_link = "<br><br><span class='style2'><a href='${url_me}?mode=delete&idx=$page->id&pageid=$pageid' class='noneline' style='vertical-align: top'>Удалить&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.remove.png'/></a></span>";
+        $delete_link = "<br><br><span class='style2'><a href='${url_me}?mode=delete&idx=$page->id&pageid=$page->pageid' class='noneline' style='vertical-align: top'>Удалить&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.remove.png'/></a></span>";
         }
 
     echo <<<EOT
@@ -361,7 +396,7 @@ EOT;
 </form>
 <form style='display: inline' action='$url_me' method='get'>
 <input type='hidden' name='mode' value='list'>
-<input type='hidden' name='pageid' value='$pageid'>
+<input type='hidden' name='pageid' value='$page->pageid'>
 <button type='submit'>Нет</button>
 </form>
 </div>
@@ -385,8 +420,8 @@ EOT;
         $page->year = "$page->year-$CurYear";
     }
 
-    if (can_edit_for_sender($page->sender)) {
-        echo "<div class='style2'><a href='${url_me}?mode=edit&idx=$page->id&pageid=$pageid' class='noneline' style='vertical-align: top'>Редактировать&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></div>";
+    if ($page->can_edit_for_sender($page->sender)) {
+        echo "<div class='style2'><a href='${url_me}?mode=edit&idx=$page->id&pageid=$page->pageid' class='noneline' style='vertical-align: top'>Редактировать&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></div>";
     }
     echo "<p class='style2'><b>$page->author</b></p>";
     echo "<p class='style2'><b><i>&nbsp;&nbsp;&nbsp;&nbsp;$page->title</i></b></p>";

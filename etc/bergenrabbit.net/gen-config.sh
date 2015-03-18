@@ -49,6 +49,3 @@ define('FORCE_SSL_LOGIN', true);
 
 require_once(ABSPATH . 'wp-settings.php');
 EOF
-
-rm -rf /www/extra_soft/wordpress/wp-config.php
-ln -s "$php_config_path" /www/extra_soft/wordpress/wp-config.php
