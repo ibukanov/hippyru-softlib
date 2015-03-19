@@ -1,0 +1,24 @@
+.errorBox, .noticeBox, .successBox {
+ 	border: 1px solid;
+	padding: 10px;
+	margin: 10px;
+	background-repeat: no-repeat;
+	background-position: 10px center;
+	border-radius: 6px;
+	-moz-border-radius: 6px;
+}
+
+.errorBox {
+	color: #D8000C;
+	background-color: #FFBABA;
+}
+
+.noticeBox {
+	color: #00529B;
+	background-color: #BDE5F8;
+}
+
+.successBox {
+	color: #4F8A10;
+	background-color: #DFF2BF;	
+}

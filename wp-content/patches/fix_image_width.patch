@@ -1,0 +1,20 @@
+Index: wp-content/themes/twentyten/style.css
+===================================================================
+--- wp-content.orig/themes/twentyten/style.css	2013-07-04 00:17:32.000000000 +0200
++++ wp-content/themes/twentyten/style.css	2013-07-04 00:22:32.000000000 +0200
+@@ -822,6 +822,15 @@
+ img.aligncenter {
+ 	margin-bottom: 12px;
+ }
++p img {
++    padding: 0;
++    max-width: 100%;
++    height: auto; /* Override height to match resized width for correct aspect ratio. */
++}
++#header, #content, #footer, .widget {
++    overflow: hidden;
++}
++
+ .wp-caption {
+ 	background: #f1f1f1;
+ 	line-height: 18px;
