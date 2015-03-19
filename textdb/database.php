@@ -201,8 +201,8 @@ echo <<<EOT
 EOT;
 
 //phpinfo();
-log_err('TEST - %d', 100);
-error_log('TEST 2');
+//log_err('TEST - %d', 100);
+//error_log('TEST 2');
 
 $strBackUrl   = "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$page->pageid' class='noneline'>Назад</a></p>";
 
