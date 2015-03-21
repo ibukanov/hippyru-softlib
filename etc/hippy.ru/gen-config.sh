@@ -43,4 +43,4 @@ EOF
 # under the tree with php sources.
 
 rm -rf "$fluxbb_root/img/avatars"
-ln -s /www/site/forum.hippy.ru/html/img/avatars "$fluxbb_root/img/avatars"
+ln -s /www/site/forum.hippy.ru/avatars "$fluxbb_root/img/avatars"
