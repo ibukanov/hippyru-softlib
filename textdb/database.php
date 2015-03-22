@@ -24,7 +24,7 @@ class Page {
     public $location = '';
     public $show_login_logout = true;
 
-    private $saved_pkey_cookie;
+    public $saved_pkey_cookie;
 
     private
     function is_superuser() {
