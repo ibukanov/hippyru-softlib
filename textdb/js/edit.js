@@ -111,7 +111,7 @@ function check_edit_fields(form) {
     } else if (!form.author.value) {
         h = form.author;
         str = "Укажите, пожалуйста, автора.";
-    } else if (form.content.value.length < 4) {
+    } else if (false && form.content.value.length < 4) {
         h = form.content;
         str = "Неплохо бы и сам текст написать...";
     } else {
