@@ -250,6 +250,14 @@ function db_bind_result4($stmt, &$v1, &$v2, &$v3, &$v4) {
     }
 }
 
+function db_bind_result5($stmt, &$v1, &$v2, &$v3, &$v4, &$v5) {
+    if (!isset($stmt) || db_failed())
+        return;
+    if (!$stmt->bind_result($v1, $v2, $v3, $v4, $v5)) {
+        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
+    }
+}
+
 function db_bind_result6($stmt, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
     if (!isset($stmt) || db_failed())
         return;
@@ -273,7 +281,7 @@ function db_fetch($stmt) {
     if ($status !== true) {
         if ($status === false)
             db_err(sprintf("fetch() failed: (%d) %s", $stmt->errno, $stmt->error));
-        return false;
+        return null;
     }
     return true;
 }

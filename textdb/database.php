@@ -141,6 +141,10 @@ function do_logout(Page $page) {
     $page->redirect("$original_path_info$if_query$query_part");
 }
 
+function get_id_for_category($cat) {
+    return 'cat/' . preg_replace('/[,\s]+/', '_', $cat);
+}
+
 $url_me = $_SERVER['SCRIPT_NAME'];
 $query_part = $_SERVER['QUERY_STRING'];
 $if_query = $query_part ? '?' : '';
@@ -206,17 +210,6 @@ EOT;
 
 $strBackUrl   = "<p align='center' class='style2'><a href='${url_me}?mode=list&pageid=$page->pageid' class='noneline'>Назад</a></p>";
 
-if (!$page->error && $page->show_login_logout) {
-    if ($page->user_login === "guest") {
-        $text = '[Войти]';
-        $url = "$url_me$path_info/login$if_query$query_part";
-    } else {
-        $text = sprintf('[Выйти (%s)]', $page->user_login);
-        $url = "$url_me$path_info/logout$if_query$query_part";
-    }
-    echo "<div style='text-align: right'><a href='$url'>$text</a></div>";
-}
-
 if ($page->error) {
     $with_sys_details = false;
     switch ($page->error) {
@@ -256,8 +249,47 @@ if ($page->error) {
         echo "</div>";
     }
     printf("<hr>%s", $strBackUrl);
+    return;
+}
 
-} elseif ($page->mode === 'login') {
+$menu_right = '';
+$menu_left = '';
+
+if ($page->show_login_logout) {
+    if ($page->user_login === "guest") {
+        $text = '[Войти]';
+        $url = "$url_me$path_info/login$if_query$query_part";
+    } else {
+        $text = sprintf('[Выйти]');
+        $url = "$url_me$path_info/logout$if_query$query_part";
+    }
+    $menu_right = "<a href='$url'>$text</a></div>";
+}
+
+if ($page->mode === 'list') {
+    if ($page->can_write()) {
+        $menu_left = "<a href='${url_me}?mode=edit&pageid=$page->pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$page->pageid]."<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a>";
+    }
+} elseif ($page->mode === 'showtext') {
+    if ($page->can_edit_for_sender($page->sender)) {
+        $menu_left = "<a href='${url_me}?mode=edit&idx=$page->id&pageid=$page->pageid' class='noneline' style='vertical-align: top'>Редактировать&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a>";
+    }
+}
+
+if ($menu_left || $menu_right) {
+    echo "<div>\n";
+    if ($menu_left) {
+        echo "<div class='style2' style='float: left'>$menu_left</div>\n";
+    }
+    if ($menu_right) {
+        echo "<div style='float: right'>$menu_right</div>\n";
+    }
+    echo "<div style='clear: both'></div>\n";
+    echo "</div>\n";
+}
+
+
+if ($page->mode === 'login') {
     $login_url = "$url_me$path_info$if_query$query_part";
     echo <<<EOT
 <!-- Login form -->
@@ -271,41 +303,65 @@ if ($page->error) {
 EOT;
 
 } elseif ($page->mode === 'list') {
-    if ($page->can_write()) {
-        echo "<div class='style2' style='text-align: left'><a href='${url_me}?mode=edit&pageid=$page->pageid' class='noneline'>+ Добавить ещё ".$g_DocName_0[$page->pageid]."<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></div>";
-    }
-    
     $class = "";
     $need_author = false;
-    foreach ($page->rows as $row) {
-        $r_class    = $row[LIST_COLUMN_CLASS];
-        $r_id       = $row[LIST_COLUMN_ID];
-        $r_author   = $row[LIST_COLUMN_AUTHOR];
-        $r_year     = $row[LIST_COLUMN_YEAR];
-        $r_title    = $row[LIST_COLUMN_TITLE];
-        
-        // Split classes
-        if ($r_class != $class) {
-            if ($class != "") echo "</table>\n";
-            echo "<p align='center' class='style2'>$r_class</p><table border='1' align='center' width='50%'>";
-            $class = $r_class;
-            $need_author = strpos($class, "Чужие") !== false;
+    $nclasses = count($page->classes);
+    if ($nclasses != 0) {
+        echo "<p style='text-align: center'>";
+        for ($i = 0; $i < $nclasses; $i += 2) {
+            $class = $page->classes[$i + 0];
+            $class_ref = get_id_for_category($class);
+            if ($i !== 0) {
+                echo " ";
+            }
+            echo "<a href='#$class_ref' style='white-space: nowrap'>[$class]</a>";
         }
-        
-        echo "<tr><td align='center' width='10%'><font class='style2'>$r_year</font></td>";
-        
-        if ($need_author) {
-            echo "<td align=center><font class='style2'>&nbsp;<nobr>$r_author</nobr>&nbsp;</font></td>";
-        }
-        
-        echo "<td align='center'><font class='style2'>";
-        echo "<a href='$url_me?mode=showtext&idx=$r_id&pageid=$page->pageid' class='noneline'>$r_title</a>";
-        echo "</font></td>";
-        echo "</tr>";
+        echo "</p>\n";
     }
-    if (!count($page->rows)) {
+    
+    for ($i = 0; $i < $nclasses; $i += 2) {
+        $class = $page->classes[$i + 0];
+        $data = $page->classes[$i + 1];
+        $class_ref = get_id_for_category($class);
+        
+        $need_author = strpos($class, "Чужие") !== false;
+        $ndata = count($data);
+        echo "<p align='center' class='style2' id='$class_ref'>$class</p>\n";
+        echo "<table border='1' align='center' width='50%'>\n";
+        for ($j = 0; $j < $ndata; $j += 4) {
+            $id     = $data[$j + 0];
+            $author = $data[$j + 1];
+            $year   = $data[$j + 2];
+            $title  = $data[$j + 3];
+        
+            echo "<tr>\n";
+            echo "<td align='center' width='10%'><font class='style2'>$year</font></td>\n";
+            if ($need_author) {
+                echo "<td align=center><font class='style2'>&nbsp;<nobr>$author</nobr>&nbsp;</font></td>\n";
+            }
+            echo "<td align='center'><a class='style2 noneline' href='$url_me?mode=showtext&idx=$id&pageid=$page->pageid'>$title</a></td>\n";
+            echo "</tr>\n";
+        }
+        echo "</table>\n";
+    }
+    if ($nclasses === 0) {
         echo "<p align='center' class='style2'>Ни одного файла не загружено</p>$strBackUrl";
     }
+
+} else if ($page->mode === 'showtext') {
+    $CurYear = date ("Y", time ());
+    $r_stamp = date("d M Y", $page->uploaded);
+
+    // Create year-span
+    if ($CurYear != $page->year) {
+        $page->year = "$page->year-$CurYear";
+    }
+
+    echo "<p class='style2'><b>$page->author</b></p>";
+    echo "<p class='style2'><b><i>&nbsp;&nbsp;&nbsp;&nbsp;$page->title</i></b></p>";
+    echo "<div class='style2_pad'>$page->content</div><br>";
+    // echo "<p class='style2'><font size='-1'>(c) $page->author $page->year</font></p>";
+    echo $strBackUrl;
 
 } elseif ($page->mode === 'edit') {
     if ($page->new_record) {
@@ -411,32 +467,15 @@ EOT;
     }
     echo $strBackUrl;
 
-} else if ($page->mode === 'showtext') {
-    $CurYear = date ("Y", time ());
-    $r_stamp = date("d M Y", $page->uploaded);
-
-    // Create year-span
-    if ($CurYear != $page->year) {
-        $page->year = "$page->year-$CurYear";
-    }
-
-    if ($page->can_edit_for_sender($page->sender)) {
-        echo "<div class='style2'><a href='${url_me}?mode=edit&idx=$page->id&pageid=$page->pageid' class='noneline' style='vertical-align: top'>Редактировать&nbsp;<img width='16' height='16' border='0' src='$static_path/png/16x16.edit.png'/></a></div>";
-    }
-    echo "<p class='style2'><b>$page->author</b></p>";
-    echo "<p class='style2'><b><i>&nbsp;&nbsp;&nbsp;&nbsp;$page->title</i></b></p>";
-    echo "<div class='style2_pad'>$page->content</div><br>";
-    // echo "<p class='style2'><font size='-1'>(c) $page->author $page->year</font></p>";
-    echo $strBackUrl;
-
 } else if ($page->mode === 'upload') {
     $record_url = "${url_me}?mode=showtext&idx=$page->id&pageid=$page->pageid";
     $add_more_url = "${url_me}?mode=edit&pageid=$page->pageid";
+    $title = sprintf('&laquo;%s&raquo;', $page->title);
     echo "<center><font class='style2'>";
     if ($page->new_record) {
-        echo "<a href='$record_url'>Файл</a> благополучно загружен в базу данных<br><br>";
+        echo "Запись <a href='$record_url'>$title</a> благополучно загружена в базу данных<br><br>";
     } else {
-        echo "<a href='$record_url'>Файл</a> благополучно изменен в базе данных<br><br>";
+        echo "Запись <a href='$record_url'>$title</a> благополучно измененa в базе данных<br><br>";
     }
     echo "<a href='$add_more_url' class='noneline'>Добавить ещё</a>";
     echo "</font></center><br>";

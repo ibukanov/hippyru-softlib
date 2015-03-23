@@ -137,6 +137,7 @@ function do_upload(Page $page) {
             return PAGE_DB_ERR;
         }
     }
+    $page->title = $title; 
 }
 
 function do_delete(Page $page) {
