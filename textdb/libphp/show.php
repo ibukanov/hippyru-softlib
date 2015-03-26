@@ -15,7 +15,7 @@ function do_get_list(Page $page, $sort_first_class) {
         "ORDER BY a.class <> ?, b.freq desc, a.class, a.year desc, a.title",
         DEFS_DB_TABLE_TEXTS, DEFS_DB_TABLE_TEXTS);
 
-    db_bind_param3($stmt, "iis", $page->pageid, $page->pageid, $sort_first_class);
+    db_bind_param3($stmt, "iis", $page->text_kind, $page->text_kind, $sort_first_class);
     db_execute($stmt);
     db_bind_result5($stmt, $class, $id, $author, $year, $title);
     $classes = array();
@@ -37,25 +37,21 @@ function do_get_list(Page $page, $sort_first_class) {
 }
 
 function do_show(Page $page) {
-    $page->id = (int) filter_input (INPUT_GET, "idx", FILTER_VALIDATE_INT);
-    if (!$page->id)
-        return PAGE_RECORD_NOT_FOUND;
-
     $stmt = db_prepare(
-        "SELECT author, year, title, sender, uploaded, content FROM %s WHERE id = ?",
+        "SELECT pageid, author, year, title, sender, uploaded, content FROM %s WHERE id = ?",
         DEFS_DB_TABLE_TEXTS);
-    db_bind_param($stmt, "i", $page->id);
+    db_bind_param($stmt, "i", $page->record_id);
     db_execute($stmt);
 
     # Store result to access the blob column content
     db_store_result($stmt);
-    db_bind_result6($stmt, $page->author, $page->year, $page->title, $page->sender,
-                    $page->uploaded, $page->content);
+    db_bind_result7($stmt, $page->text_kind, $page->author, $page->year, $page->title,
+                    $page->sender, $page->uploaded, $page->content);
     db_fetch($stmt);
     db_close($stmt);
     if (!db_ok())
-        return PAGE_DB_ERR; 
-    
+        return PAGE_DB_ERR;
+
     if (!isset($page->author))
         return PAGE_RECORD_NOT_FOUND;
 }

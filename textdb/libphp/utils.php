@@ -31,6 +31,10 @@ function uri_safe_base64($str) {
     return strtr(rtrim(base64_encode($str), '='), '+/', '-_');
 }
 
+function escape_html_text($str) {
+    return htmlspecialchars($str, ENT_NOQUOTES | ENT_HTML401 | ENT_DISALLOWED, 'UTF-8');
+}
+
 function u_read_file($path) {
     if (!isset($path)) return null;
     $str = file_get_contents($path);
@@ -128,7 +132,7 @@ function db_prepare($sql) {
         db_err(sprintf("prepare(%s) failed: (%d) %s", $sql, $db->errno, $db->error));
         return null;
     }
-    return $stmt; 
+    return $stmt;
 }
 
 function db_bind_param($stmt, $type, &$v) {
@@ -242,6 +246,14 @@ function db_bind_result2($stmt, &$v1, &$v2) {
     }
 }
 
+function db_bind_result3($stmt, &$v1, &$v2, &$v3) {
+    if (!isset($stmt) || db_failed())
+        return;
+    if (!$stmt->bind_result($v1, $v2, $v3)) {
+        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
+    }
+}
+
 function db_bind_result4($stmt, &$v1, &$v2, &$v3, &$v4) {
     if (!isset($stmt) || db_failed())
         return;
@@ -304,6 +316,12 @@ function db_affected_rows($stmt) {
     if (!is_int($num) || $num < 0)
         return 0;
     return $num;
+}
+
+function db_fetch_row($result) {
+    if (!isset($result) || db_failed())
+        return array();
+    return $result->fetch_row();
 }
 
 function db_fetch_all($result) {

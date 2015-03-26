@@ -53,22 +53,22 @@ function parse_stored_hash_($stored_hash, &$salt, &$authenticator) {
  */
 function verify_password($user, $password, $expiration, $stored_hash, $hmac_secret) {
     if (!isset($user, $password, $expiration, $stored_hash, $hmac_secret))
-        return;
+        return false;
 
     if (!parse_stored_hash_($stored_hash, $salt, $authenticator))
-        return;
+        return false;
 
     $check = crypt($password, $salt);
 
     # More sanity check for $salt format
     if (strlen($check) !== 60 || substr_compare($check, $salt, 0, 29))
-        return;
+        return false;
 
     $auth_hash = substr($check, 29);
     $auth_hash = strtr($auth_hash, './', '-_');
 
     if (!check_crypto_hash($auth_hash, $authenticator))
-        return;
+        return null;
 
     return build_cookie_($user, $auth_hash, $expiration, $hmac_secret);
 }

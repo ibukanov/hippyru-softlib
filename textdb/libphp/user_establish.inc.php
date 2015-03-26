@@ -29,56 +29,71 @@ function get_hmac_secret($user_info) {
 }
 
 function set_login_cookie($value, $expiration) {
-    setcookie('u', $value, $expiration, '', '', true, true);
+    global $url_me;
+    setcookie('u', $value, $expiration, $url_me . '/', '', true, true);
 }
 
 function drop_login_cookie() {
-    setcookie('u', '', 1, '', '', true, true);
+    global $url_me;
+    setcookie('u', '', 1, $url_me . '/', '', true, true);
 }
 
 function check_login_cookie(Page $page, $refresh) {
+    if (isset($page->error))
+        return;
+
     if (!isset($_COOKIE['u']))
         return;
 
-    do {
-        $cookie = new session\Cookie($_COOKIE['u']);
-        $cookie->parse_user();
-        $user_info = get_user_info($cookie->user);
+    $cookie = new session\Cookie($_COOKIE['u']);
+    $cookie->parse_user();
 
-        // TODO report DB errors
-        if (!is_object($user_info))
-            break;
+    $user_info = get_user_info($cookie->user);
 
-        $cookie->validate($user_info->passhash, get_hmac_secret($user_info));
-        $time = time();
-        if ((int) $cookie->expiration < $time)
-            break;
-        
-        $page->user_login     = $cookie->user;
-        $page->user_access    = $user_info->access;
-        $page->user_full_name = $user_info->name;
+    if (!is_object($user_info)) {
+        $page->error = $user_info;
+        goto drop;
+    }
 
-        if ($refresh) {
-            $new_expiration = $time + DEFS_LOGIN_DURATION;
-            set_login_cookie($cookie->refresh($new_expiration), $new_expiration);
-        }
-        return;
-    } while (false);
+    $cookie->validate($user_info->passhash, get_hmac_secret($user_info));
+    $time = time();
 
-    // Invalidate the ID.
+    if ((int) $cookie->expiration < $time)
+        goto drop;
+
+    $page->user_login     = $cookie->user;
+    $page->user_access    = $user_info->access;
+    $page->user_full_name = $user_info->name;
+
+    if ($refresh) {
+        $new_expiration = $time + DEFS_LOGIN_DURATION;
+        set_login_cookie($cookie->refresh($new_expiration), $new_expiration);
+    }
+    return;
+
+    drop:
     drop_login_cookie();
 }
 
 /// Returns 0, if login is successful.
 function user_login($user, $pass) {
+    if (!isset($user, $pass))
+        return PAGE_MISSING_OR_INVALID_PARAM;
+
     $user_info = get_user_info($user);
     if (!is_object($user_info))
         return $user_info;
+    if (!isset($user_info->name)) {
+        // TODO report bad user name
+        return PAGE_BAD_LOGIN;
+    }
 
     $expiration = time() + DEFS_LOGIN_DURATION;
     $cookie = session\verify_password($user, $pass, $expiration,
                                       $user_info->passhash, get_hmac_secret($user_info));
-    if (!isset($cookie))
+    if ($cookie === false)
+        return PAGE_MISSING_OR_INVALID_PARAM;
+    if ($cookie === null)
         return PAGE_BAD_LOGIN;
 
     set_login_cookie($cookie, $expiration);
