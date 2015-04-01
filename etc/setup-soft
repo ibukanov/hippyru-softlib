@@ -118,9 +118,44 @@ php_write_config() {
     write_file -m 640 -L "$php_config_path"
 }
 
+setup_ljdump() {
+    log "Preparing ljdump config"
+
+    local dir="/area/ljdump"
+    local ljuser=lubava
+    local config_file="$dir/$ljuser.config"
+    local password_file="$dir/$ljuser.password"
+
+    write_file -m 640 -L "$config_file" <<EOF
+{
+"server": "http://livejournal.com",
+"username": "lubava",
+"password_file": "$password_file",
+"journals": [
+    "lubava",
+    "omskiy_palach",
+    "ru_bergen",
+    "nina_iskrenko",
+    "vegan_lj",
+    "vegan_book"
+],
+"dir": "/www/ljdump"
+}
+EOF
+
+    if [[ ! -s "$password_file" ]]; then
+	local password
+	IFS='' read -r -p "Enter password for lubava livejournal (it will be echoed): " \
+	   password
+	printf %s "$password" > "$password_file" 
+    fi
+}
+
 for name in bergenrabbit.net hippy.ru lubava.info; do
     file="$soft/etc/$name/gen-config.sh"
     if [[ -e "$file" ]]; then
 	source "$file"
     fi
 done
+
+setup_ljdump
