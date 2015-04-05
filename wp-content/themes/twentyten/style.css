@@ -830,6 +830,20 @@ img.alignright,
 img.aligncenter {
 	margin-bottom: 12px;
 }
+
+/* force image resize when it is not added via upload */
+p img {
+    padding: 0;
+    max-width: 100%;
+    height: auto; /* Override height to match resized width for correct aspect ratio. */
+}
+
+/*
+#header, #content, #footer, .widget {
+    overflow: hidden;
+}
+*/
+
 .wp-caption {
 	background: #f1f1f1;
 	line-height: 18px;
