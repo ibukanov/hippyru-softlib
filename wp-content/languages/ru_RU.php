@@ -1,2 +1,1 @@
-<?php
-// Silence is golden.
+../../wordpress/wp-content/languages/ru_RU.php
