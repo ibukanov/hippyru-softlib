@@ -1,0 +1,27 @@
+/*
+ Theme Name:   Custom Twenty Ten
+ Theme URI:    http://localhost/custom-twentyten/
+ Description:  Customized Twenty Ten Theme
+ Author:       bergenrabbit team
+ Author URI:   https://www.bergenrabbit.net/
+ Template:     twentyten
+ Version:      1.0.0
+ License:      GNU General Public License v2 or later
+ License URI:  http://www.gnu.org/licenses/gpl-2.0.html
+ Tags: black, blue, white, two-columns, fixed-layout, custom-header, custom-background, threaded-comments, sticky-post, translation-ready, microformats, rtl-language-support, editor-style, custom-menu, flexible-header
+ Text Domain:  custom-twentyten
+*/
+
+/* force image resize when it is not added via upload */
+p img {
+    padding: 0;
+    max-width: 100%;
+    height: auto; /* Override height to match resized width for correct aspect ratio. */
+}
+
+/*
+#header, #content, #footer, .widget {
+    overflow: hidden;
+}
+*/
+
