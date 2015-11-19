@@ -20,6 +20,8 @@ php_prepare_config_write "$user" wp-config.php
 php_write_config <<EOF
 <?php
 
+define( 'WP_CONTENT_DIR', '$soft/wp-content' );
+
 define('DB_HOST',     'localhost:$mysql_socket');
 define('DB_USER',     '$php_db_user');
 define('DB_PASSWORD', '$php_db_password');

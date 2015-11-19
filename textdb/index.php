@@ -1,9 +1,12 @@
 <?php
-if (isset($_SERVER['TEXTDB_CONFIG'])) {
-    require_once $_SERVER['TEXTDB_CONFIG'];
+
+// Load config either from the current dir or from a parent directory.
+if (file_exists(dirname(__FILE__) . '/textdb-config.php')) {
+    require_once(dirname(__FILE__) . '/textdb-config.php');
 } else {
-    require_once "config.php";
+    require_once(dirname(dirname(__FILE__)) . '/textdb-config.php');
 }
+
 require_once 'libphp/defines.inc.php';
 require_once 'libphp/utils.php';
 require_once 'libphp/session.php';

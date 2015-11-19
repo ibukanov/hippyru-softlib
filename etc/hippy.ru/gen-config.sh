@@ -35,12 +35,12 @@ php_write_config <<EOF
 
 define('FORUM', 1);
 define('FORUM_DISABLE_CSRF_CONFIRM', 1);
-
-define('FORUM_CACHE_DIR', '$forum_cache');
 EOF
 
-# Hack to workaround fluxbb limitation that requires the upload dir to reside
-# under the tree with php sources.
+# Prepare mount points for fluxbb. Due its limitations they should be
+# in the setup tree from the host volume and not, for example, in the
+# upper directory /www/soft that belongs to the image.
 
-rm -rf "$fluxbb_root/img/avatars"
-ln -s /www/site/forum.hippy.ru/avatars "$fluxbb_root/img/avatars"
+rm -rf "$fluxbb_root/img/avatars" "$fluxbb_root/cache" "$fluxbb_root/config.php"
+mkdir "$fluxbb_root/img/avatars" "$fluxbb_root/cache"
+touch "$fluxbb_root/config.php"
