@@ -1,3 +1,4 @@
+#!/usr/bin/perl -w
 use strict;
 use warnings;
 use File::Basename;
@@ -27,36 +28,16 @@ sub writefile {
     close(FILE);
 }
 
-sub process_href {
-    my $text = shift;
-    if ($text =~ m/^http:(\/\/(?:www\.)?(?:lubava\.info|youtube\.[a-z]+)(?:\/.*)?)$/s) {
-	return $1;
-    }
-    return $text;
-}
-
-sub process_src {
-    my $text = shift;
-    $text = process_href($text);
-    if ($text =~ m/^http:(\/\/(?:www\.)?(?:hippy\.ru|bergenrabbit\.net|bergenrabbit\.no)(?:\/.*)?)$/s) {
-	return $1;
-    }
-    return $text;
-}
-
 for my $name (@ARGV) {
     next if ! -f $name;
     my $data = readfile($name);
     my $old = $data;
-    $data =~ s/\bsrc="([^" ]+?)"/"src=\"" . process_src($1) . "\""/sge;	
-    $data =~ s/\bsrc='([^' ]+?)'/"src='" . process_src($1) . "'"/sge;
-    $data =~ s/\bhref="([^" ]+?)"/"href=\"" . process_href($1) . "\""/sge;	
-    $data =~ s/\bhref='([^' ]+?)'/"href='" . process_href($1) . "'"/sge;
+    $data =~ s/\bhttp:(\/\/(?:www\.)?(?:lubava\.info|bergenrabbit\.net|bergenrabbit\.no|hippy\.ru|youtube\.[a-z]+|youtu\.be|[a-z0-9]+\.wp\.com|[a-z0-9]+\.ggpht\.com|[a-z0-9]+\.[a-z0-9]+\.flickr\.com|[a-z0-9]+\.flickr\.com)\/)/https:$1/sg;
     if ($data ne $old) {
         print "changed $name\n";
 #        print $data;
 #        writefile($name . ".new", $data);
-#        writefile($name, $data);
+        writefile($name, $data);
     }
 }
 
