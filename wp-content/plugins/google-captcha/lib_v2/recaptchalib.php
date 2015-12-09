@@ -31,15 +31,15 @@
  */
 
 /**
- * A ReCaptchaResponse is returned from checkAnswer().
+ * A gglcptch_ReCaptchaResponse is returned from checkAnswer().
  */
-class ReCaptchaResponse
+class gglcptch_ReCaptchaResponse
 {
     public $success;
     public $errorCodes;
 }
 
-class ReCaptcha
+class gglcptch_ReCaptcha
 {
     private static $_signupUrl = "https://www.google.com/recaptcha/admin";
     private static $_siteVerifyUrl =
@@ -52,7 +52,7 @@ class ReCaptcha
      *
      * @param string $secret shared secret between site and ReCAPTCHA server.
      */
-    function ReCaptcha($secret)
+    function gglcptch_ReCaptcha($secret)
     {
         if ($secret == null || $secret == "") {
             die("To use reCAPTCHA you must get an API key from <a href='"
@@ -113,13 +113,13 @@ class ReCaptcha
      * @param string $remoteIp   IP address of end user.
      * @param string $response   response string from recaptcha verification.
      *
-     * @return ReCaptchaResponse
+     * @return gglcptch_ReCaptchaResponse
      */
     public function verifyResponse($remoteIp, $response)
     {
         // Discard empty solution submissions
         if ($response == null || strlen($response) == 0) {
-            $recaptchaResponse = new ReCaptchaResponse();
+            $recaptchaResponse = new gglcptch_ReCaptchaResponse();
             $recaptchaResponse->success = false;
             $recaptchaResponse->errorCodes = 'missing-input';
             return $recaptchaResponse;
@@ -135,7 +135,7 @@ class ReCaptcha
             )
         );
         $answers = json_decode($getResponse, true);
-        $recaptchaResponse = new ReCaptchaResponse();
+        $recaptchaResponse = new gglcptch_ReCaptchaResponse();
 
         if (trim($answers ['success']) == true) {
             $recaptchaResponse->success = true;
