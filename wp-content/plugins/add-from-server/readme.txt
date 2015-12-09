@@ -1,8 +1,8 @@
 === Add From Server ===
 Contributors: dd32
 Tags: admin, media, uploads, post, import, files
-Requires at least: 3.2
-Stable tag: 3.2.0.3
+Requires at least: 4.0
+Stable tag: 3.3.1
 
 "Add From Server" is a quick plugin which allows you to import media & files into the WordPress uploads manager from the Webservers filesystem
 
@@ -13,29 +13,21 @@ Add From Server is designed to help ease this pain, You can upload a bunch of fi
 
 == Changelog ==
 
-= 3.2.0.3 =
- * PHP 5.4 compatibility
- * Special characters in URL fixes
- * Japanese Translations from Naoko Takano ( http://en.naoko.cc/ )
+= 3.3.1 =
+ * Fix plugin activation
 
-= 3.2.0.2 =
- * Fix: Translations not loaded early enough for menu items.
-
-= 3.2.0.1 =
- * Fix: Incorrect GUID on imported items in subdir of uploads folder
- * Fix: Not all items would correctly trigger the already-imported error
-
-= 3.2.0 =
- * For Pre-3.2 changelog, Please see http://plugins.svn.wordpress.org/add-from-server/tags/2.3/readme.txt
- * Cleanup, Now requires WordPress 3.2+
- * Now has an options panel to control who is allowed to import files
- * Now has the option to specify what the base directory is for file imports (ie. allows you to prevent users access to non-public directories)
- * Versioning changes - This plugin will from now use the earliest version of WordPress it supports. 3.2 requires 3.2, 3.2.0.1 is a point release which requires 3.2. 3.3.4 will require WP 3.3.4 etc. May seem a little weird, but you'll get used to it, bigger numbers are still better :)
+= 3.3 =
+ * The plugin now requires WordPress 4.0 and PHP 5.4 as a minumum requirement.
+ * Updated to use WordPress.org translation system, please submit translations through https://translate.wordpress.org/projects/wp-plugins/add-from-server/stable
+ * Updated to WordPress 4.3 styles
 
 == Upgrade Notice ==
 
-= 3.2.0.3 =
-Japanese Translations, PHP 5.4 compatibility, and a fix to special characters in urls.
+= 3.3.1 =
+Warning: This plugin now requires WordPress 4.0 & PHP 5.4. Updates to support WordPress 4.3 & WordPress.org Language Pack Translations
+
+= 3.3 =
+Warning: This plugin now requires WordPress 4.0 & PHP 5.4. Updates to support WordPress 4.3 & WordPress.org Language Pack Translations
 
 == FAQ ==
  Q: What placeholders can I use in the Root path option?
