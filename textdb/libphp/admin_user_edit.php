@@ -12,11 +12,12 @@ function update_password($user, $password) {
 
     $hash = session\get_password_storage_hash($password);
     $stmt = db_prepare("UPDATE %s SET passhash=? WHERE nickname=?", DEFS_DB_TABLE_USERS);
-    db_bind_param2($stmt, "ss", $hash, $user);
+    db_bind_value($stmt, 1, $hash, PDO::PARAM_STR);
+    db_bind_value($stmt, 2, $user, PDO::PARAM_STR);
     db_execute($stmt);
-    $naffected = db_affected_rows($stmt);
+    $nchanged = db_row_count($stmt);
     db_close($stmt);
-    if ($naffected === 1) {
+    if ($nchanged === 1) {
         log_info('Updated password for %s', $user);
     } else if (db_ok()) {
         log_err("Failed to locate the user '%s'", $user);

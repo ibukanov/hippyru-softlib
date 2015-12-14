@@ -15,9 +15,9 @@ if (!db_ok())
 //*/
 $stmt = db_prepare("SELECT id FROM %s", DEFS_DB_TABLE_TEXTS);
 db_execute($stmt);
-db_bind_result($stmt, $r_id);
+db_bind_column($stmt, 1, $r_id, PDO::PARAM_INT);
 $ids = array();
-while (db_fetch($stmt)) {
+while (db_fetch_bound($stmt)) {
     array_push($ids, $r_id);
 }
 db_close($stmt);
@@ -26,8 +26,8 @@ if (!db_ok())
 
 $stmt = db_prepare("SELECT count(id) FROM %s", DEFS_DB_TABLE_TEXTS);
 db_execute($stmt);
-db_bind_result($stmt, $db_count);
-db_fetch($stmt);
+db_bind_column($stmt, 1, $db_count, PDO::PARAM_INT);
+db_fetch_bound($stmt);
 db_close($stmt);
 if (!db_ok())
     die();
@@ -53,9 +53,9 @@ for ($i = 0; $i < $n; $i += 1) {
 
 for ($i = 0; $i < $n; $i += 1) {
     $stmt = db_prepare("UPDATE %s SET content=? WHERE id=?", DEFS_DB_TABLE_TEXTS);
-    db_bind_param2($stmt, "si", $texts[$i], $ids[$i]);
+    db_bind_value($stmt, 1, $texts[$i], PDO::PARAM_LOB);
+    db_bind_value($stmt, 2, $ids[$i], PDO::PARAM_INT);
     db_execute($stmt);
-    $affected = db_affected_rows($stmt);
     db_close($stmt);
 }
 
@@ -63,12 +63,11 @@ for ($i = 0; $i < $n; $i += 1) {
 $bad = false;
 for ($i = 0; $i < $n; $i += 1) {
     $stmt = db_prepare("SELECT content FROM %s WHERE id=?", DEFS_DB_TABLE_TEXTS);
-    db_bind_param($stmt, "i", $ids[$i]);
+    db_bind_value($stmt, 1, $ids[$i], PDO::PARAM_INT);
     db_execute($stmt);
-    db_store_result($stmt);
     $text = null;
-    db_bind_result($stmt, $text);
-    db_fetch($stmt);
+    db_bind_column($stmt, 1, $text, PDO::PARAM_LOB);
+    db_fetch_bound($stmt);
     db_close($stmt);
     if ($text !== $texts[$i]) {
         log_err("Failed to compare db and file text for id=%s, flength=%s, dblength=%s",

@@ -12,10 +12,14 @@ function get_user_info($login) {
     $stmt = db_prepare(
         "SELECT name, passhash, cookiesalt, access " .
         "FROM %s WHERE nickname=?", DEFS_DB_TABLE_USERS);
-    db_bind_param($stmt, "s", $login);
+    db_bind_value($stmt, 1, $login, PDO::PARAM_STR);
     db_execute($stmt);
-    db_bind_result4($stmt, $ui->name, $ui->passhash, $ui->cookiesalt, $ui->access);
-    db_fetch($stmt);
+
+    db_bind_column($stmt, 1, $ui->name, PDO::PARAM_STR);
+    db_bind_column($stmt, 2, $ui->passhash, PDO::PARAM_STR);
+    db_bind_column($stmt, 3, $ui->cookiesalt, PDO::PARAM_STR);
+    db_bind_column($stmt, 4, $ui->access, PDO::PARAM_INT);
+    db_fetch_bound($stmt);
     db_close($stmt);
     if (!db_ok())
         return PAGE_DB_ERR;
@@ -106,13 +110,14 @@ function user_logout(Page $page) {
     if ($page->user_login && $page->user_login !== "guest") {
         $salt = openssl_random_pseudo_bytes(6);
         $stmt = db_prepare("UPDATE %s SET cookiesalt=? WHERE nickname=?", DEFS_DB_TABLE_USERS);
-        db_bind_param2($stmt, "ss", $salt, $page->user_login);
+        db_bind_value($stmt, 1, $salt, PDO::PARAM_STR);
+        db_bind_value($stmt, 2, $page->user_login, PDO::PARAM_STR);
         db_execute($stmt);
-        $naffected = db_affected_rows($stmt);
+        $nchanged = db_row_count($stmt);
         db_close($stmt);
         if (!db_ok())
             return PAGE_DB_ERR;
-        if ($naffected !== 1) {
+        if ($nchanged !== 1) {
             db_err("Failed to update login record for $page->user_login");
             return PAGE_DB_ERR;
         }

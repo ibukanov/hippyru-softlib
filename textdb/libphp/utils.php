@@ -75,27 +75,11 @@ function db_connect() {
         return $db_connection;
     }
 
-    $host = null;
-    $port = 0;
-    $socket = null;
-    if (defined('DEF_DB_HOST')) {
-        $host = DEF_DB_HOST;
-        if (defined('DEF_DB_PORT')) {
-            $port = DEF_DB_PORT;
-        }
-    } elseif (defined('DEF_DB_PATH')) {
-        $socket = DEF_DB_PATH;
-    }
-    $db = new mysqli($host, DEF_DB_USER, DEF_DB_PASSWORD, DEF_DB_NAME, $port, $socket);
-    if ($db->connect_errno) {
-        db_err(sprintf("Failed to connect to MySQL at '%s': (%d) %s",
-                       (isset($host) ? $host . ($port ? ':' . $port : '') : $socket),
-                       $db->connect_errno, $db->connect_error));
-        return null;
-    }
-
-    if (!$db->set_charset('utf8')) {
-        db_err(sprintf("set_charset('utf8') failed: (%d) %s", $sql, $db->errno, $db->error));
+    try {
+        $db = new PDO(DEF_DB_DSN, DEF_DB_USER, DEF_DB_PASSWORD);
+    } catch (PDOException $e) {
+        db_err(sprintf("Failed to connect to '%s': (%d) %s",
+                       DEF_DB_DSN, $e->getCode(), $e->getMessage()));
         return null;
     }
 
@@ -113,7 +97,8 @@ function db_query($sql) {
     }
     $status = $db->query($sql);
     if ($status === false) {
-        db_err(sprintf("query(%s) failed: (%d) %s", $sql, $db->errno, $db->error));
+        $info = $db->errorInfo();
+        db_err(sprintf("query(%s) failed: (%d) %s", $sql, $info[1], $info[2]));
         return null;
     }
     return $status;
@@ -129,81 +114,21 @@ function db_prepare($sql) {
     }
     $stmt = $db->prepare($sql);
     if (!$stmt) {
-        db_err(sprintf("prepare(%s) failed: (%d) %s", $sql, $db->errno, $db->error));
+        $info = $db->errorInfo();
+        db_err(sprintf("prepare(%s) failed: (%d) %s", $sql, $info[1], $info[2]));
         return null;
     }
     return $stmt;
 }
 
-function db_bind_param($stmt, $type, &$v) {
+function db_bind_value($stmt, $parameter, $value, $type) {
     if (!isset($stmt) || db_failed())
         return;
-    if (!$stmt->bind_param($type, $v)) {
-        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_param2($stmt, $types, &$v1, &$v2) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_param($types, $v1, $v2)) {
-        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_param3($stmt, $types, &$v1, &$v2, &$v3) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_param($types, $v1, $v2, $v3)) {
-        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_param4($stmt, $types, &$v1, &$v2, &$v3, &$v4) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4)) {
-        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_param5($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5)) {
-        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_param7($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5, $v6, $v7)) {
-        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_param6($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5, $v6)) {
-        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_param8($stmt, $types, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7, &$v8) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_param($types, $v1, $v2, $v3, $v4, $v5, $v6, $v7, $v8)) {
-        db_err(sprintf("bind_param() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_send_long_data($stmt, $column, $data) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->send_long_data($column, $data)) {
-        db_err(sprintf("send_long_data() failed: (%d) %s", $stmt->errno, $stmt->error));
+    if (!$stmt->bindValue($parameter, $value, $type)) {
+        $info = $stmt->errorInfo();
+        db_err(sprintf("bind_value(%s, %s, %s) failed: (%d) %s",
+                       $parameter, $value, $type,
+                       $info[1], $info[2]));
     }
 }
 
@@ -211,134 +136,50 @@ function db_execute($stmt) {
     if (!isset($stmt) || db_failed())
         return;
     if (!$stmt->execute()) {
-        db_err(sprintf("execute() failed: (%d) %s", $stmt->errno, $stmt->error));
+        $info = $stmt->errorInfo();
+        db_err(sprintf("execute() failed: (%d) %s", $info[1], $info[2]));
     }
 }
 
-function db_insert_id() {
+function db_last_insert_id($columnName) {
     if (!($db = db_connect()))
         return 0;
-    return $db->insert_id;
+    return $db->lastInsertId();
 }
 
-function db_store_result($stmt) {
-    if (!isset($stmt) || db_failed())
-        return null;
-    if (!$stmt->store_result()) {
-        db_err("store_result() failed: (%d) %s", $stmt->errno, $stmt->error);
-    }
-    return null;
-}
-
-function db_bind_result($stmt, &$v) {
+function db_bind_column($stmt, $column, &$v, $type) {
     if (!isset($stmt) || db_failed())
         return;
-    if (!$stmt->bind_result($v)) {
-        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
+    if (!$stmt->bindColumn($column, $v, $type)) {
+        $info = $stmt->errorInfo();
+        db_err(sprintf("bind_column(%s) failed: (%d) %s", $column, $info[1], $info[2]));
     }
 }
 
-function db_bind_result2($stmt, &$v1, &$v2) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_result($v1, $v2)) {
-        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_result3($stmt, &$v1, &$v2, &$v3) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_result($v1, $v2, $v3)) {
-        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_result4($stmt, &$v1, &$v2, &$v3, &$v4) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_result($v1, $v2, $v3, $v4)) {
-        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_result5($stmt, &$v1, &$v2, &$v3, &$v4, &$v5) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_result($v1, $v2, $v3, $v4, $v5)) {
-        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_result6($stmt, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_result($v1, $v2, $v3, $v4, $v5, $v6)) {
-        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_bind_result7($stmt, &$v1, &$v2, &$v3, &$v4, &$v5, &$v6, &$v7) {
-    if (!isset($stmt) || db_failed())
-        return;
-    if (!$stmt->bind_result($v1, $v2, $v3, $v4, $v5, $v6, $v7)) {
-        db_err(sprintf("bind_result() failed: (%d) %s", $stmt->errno, $stmt->error));
-    }
-}
-
-function db_fetch($stmt) {
+function db_fetch_bound($stmt) {
     if (!isset($stmt) || db_failed())
         return false;
-    $status = $stmt->fetch();
-    if ($status !== true) {
-        if ($status === false)
-            db_err(sprintf("fetch() failed: (%d) %s", $stmt->errno, $stmt->error));
-        return null;
+    $status = $stmt->fetch(PDO::FETCH_BOUND);
+    if ($status === false) {
+        // fetch failure cannot be distinguished from no-more-results
+        return false;
     }
     return true;
 }
 
-function db_get_result($stmt) {
+function db_row_count($stmt) {
     if (!isset($stmt) || db_failed())
         return null;
-    $result = $stmt->get_result();
-    if (!$result) {
-        db_err("result() failed: (%d) %s", $stmt->errno, $stmt->error);
-        return null;
-    }
-    return $result;
-}
-
-function db_affected_rows($stmt) {
-    if (!isset($stmt) || db_failed())
-        return null;
-    $num = $stmt->affected_rows;
+    $num = $stmt->rowCount();
     if (!is_int($num) || $num < 0)
         return 0;
     return $num;
 }
 
-function db_fetch_row($result) {
-    if (!isset($result) || db_failed())
-        return array();
-    return $result->fetch_row();
-}
-
-function db_fetch_all($result) {
-    if (!isset($result) || db_failed())
-        return array();
-    return $result->fetch_all();
-}
-
-function db_close($stmt) {
-    if (isset($stmt)) {
-        $stmt->close();
-    }
-}
-
-function db_free($result) {
-    if (!is_null($result)) {
-        $result->free();
+// TODO what about PDOStatement::closeCursor ?
+function db_close(&$stmt) {
+    if (!is_null($stmt)) {
+        $stmt = null;
     }
 }
 

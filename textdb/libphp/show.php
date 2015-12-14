@@ -15,12 +15,20 @@ function do_get_list(Page $page, $sort_first_class) {
         "ORDER BY a.class <> ?, b.freq desc, a.class, a.year desc, a.title",
         DEFS_DB_TABLE_TEXTS, DEFS_DB_TABLE_TEXTS);
 
-    db_bind_param3($stmt, "iis", $page->text_kind, $page->text_kind, $sort_first_class);
+    db_bind_value($stmt, 1, $page->text_kind, PDO::PARAM_INT); 
+    db_bind_value($stmt, 2, $page->text_kind, PDO::PARAM_INT);
+    db_bind_value($stmt, 3, $sort_first_class, PDO::PARAM_STR);
     db_execute($stmt);
-    db_bind_result5($stmt, $class, $id, $author, $year, $title);
+
+    db_bind_column($stmt, 1, $class, PDO::PARAM_STR);
+    db_bind_column($stmt, 2, $id, PDO::PARAM_INT);
+    db_bind_column($stmt, 3, $author, PDO::PARAM_STR);
+    db_bind_column($stmt, 4, $year, PDO::PARAM_INT);
+    db_bind_column($stmt, 5, $title, PDO::PARAM_STR);
+
     $classes = array();
     $prev_class = null;
-    while (db_fetch($stmt)) {
+    while (db_fetch_bound($stmt)) {
         if ($prev_class !== $class) {
             $classes[] = $class;
             $classes[] = array();
@@ -40,14 +48,18 @@ function do_show(Page $page) {
     $stmt = db_prepare(
         "SELECT pageid, author, year, title, sender, uploaded, content FROM %s WHERE id = ?",
         DEFS_DB_TABLE_TEXTS);
-    db_bind_param($stmt, "i", $page->record_id);
+    db_bind_value($stmt, 1, $page->record_id, PDO::PARAM_INT);
     db_execute($stmt);
 
     # Store result to access the blob column content
-    db_store_result($stmt);
-    db_bind_result7($stmt, $page->text_kind, $page->author, $page->year, $page->title,
-                    $page->sender, $page->uploaded, $page->content);
-    db_fetch($stmt);
+    db_bind_column($stmt, 1, $page->text_kind, PDO::PARAM_INT);
+    db_bind_column($stmt, 2, $page->author, PDO::PARAM_STR);
+    db_bind_column($stmt, 3, $page->year, PDO::PARAM_INT);
+    db_bind_column($stmt, 4, $page->title, PDO::PARAM_STR);
+    db_bind_column($stmt, 5, $page->sender, PDO::PARAM_STR);
+    db_bind_column($stmt, 6, $page->uploaded, PDO::PARAM_INT);
+    db_bind_column($stmt, 7, $page->content, PDO::PARAM_LOB);
+    db_fetch_bound($stmt);
     db_close($stmt);
     if (!db_ok())
         return PAGE_DB_ERR;

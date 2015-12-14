@@ -18,13 +18,16 @@ function do_edit(Page $page) {
             "SELECT pageid, author, year, title, sender, class, content " .
             "FROM %s WHERE id = ?",
             DEFS_DB_TABLE_TEXTS);
-        db_bind_param($stmt, "i", $page->record_id);
+        db_bind_value($stmt, 1, $page->record_id, PDO::PARAM_INT);
         db_execute($stmt);
-        db_store_result($stmt);
-        db_bind_result7($stmt,
-                        $page->text_kind, $page->author, $page->year, $page->title,
-                        $page->sender, $page->class, $page->content);
-        db_fetch($stmt);
+        db_bind_column($stmt, 1, $page->text_kind, PDO::PARAM_INT);
+        db_bind_column($stmt, 2, $page->author, PDO::PARAM_STR);
+        db_bind_column($stmt, 3, $page->year, PDO::PARAM_INT);
+        db_bind_column($stmt, 4, $page->title, PDO::PARAM_STR);
+        db_bind_column($stmt, 5, $page->sender, PDO::PARAM_STR);
+        db_bind_column($stmt, 6, $page->class, PDO::PARAM_STR);
+        db_bind_column($stmt, 7, $page->content, PDO::PARAM_LOB);
+        db_fetch_bound($stmt);
         db_close($stmt);
         if (!db_ok())
             return PAGE_DB_ERR;
@@ -35,12 +38,12 @@ function do_edit(Page $page) {
     }
 
     $stmt = db_prepare("SELECT DISTINCT class FROM %s WHERE pageid=?", DEFS_DB_TABLE_TEXTS);
-    db_bind_param($stmt, "i", $page->text_kind);
+    db_bind_value($stmt, 1, $page->text_kind, PDO::PARAM_INT);
     db_execute($stmt);
-    db_bind_result($stmt, $r_class);
+    db_bind_column($stmt, 1, $r_class, PDO::PARAM_STR);
 
     $page->class_list = array();
-    while (db_fetch($stmt)) {
+    while (db_fetch_bound($stmt)) {
         array_push($page->class_list, $r_class);
     }
     db_close($stmt);
@@ -59,10 +62,10 @@ function do_save(Page $page) {
 
     if (!$page->new_record) {
         $stmt = db_prepare("SELECT pageid from %s WHERE id=?", DEFS_DB_TABLE_TEXTS);
-        db_bind_param($stmt, "i", $page->record_id);
+        db_bind_value($stmt, 1, $page->record_id, PDO::PARAM_INT);
         db_execute($stmt);
-        db_bind_result($stmt, $page->text_kind);
-        db_fetch($stmt);
+        db_bind_column($stmt, 1, $page->text_kind, PDO::PARAM_INT);
+        db_fetch_bound($stmt);
         db_close($stmt);
         if (!db_ok())
             return PAGE_DB_ERR;
@@ -100,13 +103,16 @@ function do_save(Page $page) {
         $stmt = db_prepare(
             "INSERT INTO %s VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?)",
             DEFS_DB_TABLE_TEXTS);
-        $null = null;
-        db_bind_param8($stmt, 'ssssiiib',
-                       $class_, $title, $author, $page->user_login,
-                       $year, $stamp, $page->text_kind, $null);
-        $stmt->send_long_data(7, $content);
+        db_bind_value($stmt, 1, $class_, PDO::PARAM_STR); 
+        db_bind_value($stmt, 2, $title, PDO::PARAM_STR); 
+        db_bind_value($stmt, 3, $author, PDO::PARAM_STR); 
+        db_bind_value($stmt, 4, $page->user_login, PDO::PARAM_STR); 
+        db_bind_value($stmt, 5, $year, PDO::PARAM_INT); 
+        db_bind_value($stmt, 6, $stamp, PDO::PARAM_INT); 
+        db_bind_value($stmt, 7, $page->text_kind, PDO::PARAM_INT); 
+        db_bind_value($stmt, 8, $content, PDO::PARAM_LOB); 
         db_execute($stmt);
-        $page->record_id = db_insert_id();
+        $page->record_id = db_last_insert_id("id");
         db_close($stmt);
         if (!db_ok())
             return PAGE_DB_ERR;
@@ -120,9 +126,12 @@ function do_save(Page $page) {
             "WHERE id=?",
             DEFS_DB_TABLE_TEXTS);
         $null = null;
-        db_bind_param6($stmt, "sssibi",
-                       $class_, $title, $author, $year, $null, $page->record_id);
-        db_send_long_data($stmt, 4, $content);
+        db_bind_value($stmt, 1, $class_, PDO::PARAM_STR); 
+        db_bind_value($stmt, 2, $title, PDO::PARAM_STR); 
+        db_bind_value($stmt, 3, $author, PDO::PARAM_STR); 
+        db_bind_value($stmt, 4, $year, PDO::PARAM_INT); 
+        db_bind_value($stmt, 5, $content, PDO::PARAM_LOB); 
+        db_bind_value($stmt, 6, $page->record_id, PDO::PARAM_INT); 
         db_execute($stmt);
         db_close($stmt);
         if (!db_ok())
@@ -140,10 +149,12 @@ function do_delete(Page $page) {
         return PAGE_BAD_POST_KEY;
 
     $stmt = db_prepare("SELECT pageid, title, sender FROM %s WHERE id=?", DEFS_DB_TABLE_TEXTS);
-    db_bind_param($stmt, "i", $page->record_id);
+    db_bind_value($stmt, 1, $page->record_id, PDO::PARAM_INT);
     db_execute($stmt);
-    db_bind_result3($stmt, $page->text_kind, $page->title, $sender);
-    db_fetch($stmt);
+    db_bind_column($stmt, 1, $page->text_kind, PDO::PARAM_INT);
+    db_bind_column($stmt, 2, $page->title, PDO::PARAM_STR);
+    db_bind_column($stmt, 3, $sender, PDO::PARAM_STR);
+    db_fetch_bound($stmt);
     db_close($stmt);
     if (!db_ok())
         return PAGE_DB_ERR;
@@ -156,13 +167,13 @@ function do_delete(Page $page) {
 
     if ($page->confirmed) {
         $stmt = db_prepare("DELETE FROM %s WHERE id=?", DEFS_DB_TABLE_TEXTS);
-        db_bind_param($stmt, "i", $page->record_id);
+        db_bind_value($stmt, 1, $page->record_id, PDO::PARAM_INT);
         db_execute($stmt);
-        $naffected = db_affected_rows($stmt);
+        $nchanged = db_row_count($stmt);
         db_close($stmt);
         if (!db_ok())
             return PAGE_DB_ERR;
-        if ($naffected !== 1)
+        if ($nchanged !== 1)
             return PAGE_RECORD_NOT_FOUND;
         $page->record_id = null;
     }
