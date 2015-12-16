@@ -344,7 +344,7 @@ if ($page->action === Page::LOGIN) {
   </table>
 </form>
 <hr>
-<p align='center' class='style2'><a href='$cancel_url' class='noneline'>Вернуться назад</a></p>";
+<p align='center' class='style2'><a href='$cancel_url' class='noneline'>Вернуться назад</a></p>
 EOT;
     return;
 }
