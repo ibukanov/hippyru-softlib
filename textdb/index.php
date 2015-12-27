@@ -1,9 +1,11 @@
 <?php
 
-// Load config either from the current dir or from a parent directory.
-if (file_exists(dirname(__FILE__) . '/textdb-config.php')) {
+if (isset($_SERVER['CONFIG_DIR'])) {
+    require_once($_SERVER['CONFIG_DIR'] . '/textdb-config.php');
+} elseif (file_exists(dirname(__FILE__) . '/textdb-config.php')) {
     require_once(dirname(__FILE__) . '/textdb-config.php');
 } else {
+    // As the last resort load from a parent directory of the source.
     require_once(dirname(dirname(__FILE__)) . '/textdb-config.php');
 }
 
