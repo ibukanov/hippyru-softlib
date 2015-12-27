@@ -259,7 +259,7 @@ if ($page->error) {
 } elseif ($page->action === Page::LOGIN) {
     $page_title = 'Войти';
 } elseif ($page->action === Page::SHOW) {
-    $page_title = escape_html_text($page->title);
+    $page_title = $page->title;
 } else {
     $page_title = $g_PageTitles[$page->text_kind];
 }

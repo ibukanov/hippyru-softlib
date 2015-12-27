@@ -73,6 +73,9 @@ function do_save(Page $page) {
             return PAGE_RECORD_NOT_FOUND;
     }
 
+    // FILTER_SANITIZE_STRING remove any tags from input strings. Note that it
+    // sill allows &entity;
+
     $class_ = filter_input(INPUT_POST, "group_force", FILTER_SANITIZE_STRING);
     if (!$class_) {
         $class_ = filter_input(INPUT_POST, "group", FILTER_SANITIZE_STRING);
@@ -96,7 +99,8 @@ function do_save(Page $page) {
         $author = $page->user_full_name;
     }
 
-    $content = filter_input(INPUT_POST, "content");
+    // Trust the editor to sanitize the input
+    $content = filter_input(INPUT_POST, "content", FILTER_UNSAFE_RAW);
 
     if ($page->new_record) {
         $stamp  = time();
