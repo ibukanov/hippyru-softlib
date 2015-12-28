@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# To update fluxbb and wordpress remove the corresponding folder,
+# extract files from the archive, run this script and then commit the
+# whole folder. The script ensures that the source tree structure is
+# what the web setup expects.
+
+set -e
+set -u
+set -o pipefail
+
+log_tag="${0##*/}"
+
+log() {
+    local i
+    for i in "$@" ; do
+	printf "[$log_tag] %s\n" "$i" 1>&2
+    done
+}
+
+err() {
+    log "$@"
+
+    # pause to ensure that log reaches the final destionation outside container
+    sleep 1
+    exit 1
+}
+
+cmd_log() {
+    [ $# -ge 1 ] || err "Command must be given"
+    log "$*"
+    "$@"
+}
+
+ensure_bind_mount_target_file() {
+    local path=$1
+
+    ! [[ -L "$path" ]] || \
+	err "$path is a symlink. Remove it manually and re-run"
+    ! [[ -d "$path" ]] || \
+	err "$path is a directory. Remove it manually and re-run"
+
+    if [[ -e "$path" ]]; then
+	[[ -f "$path" ]] || \
+	    err "$path is a device or other special file. Remove it manually and re-run"
+    else
+	log "creating $path with default text"
+	printf '# Do not edit. This is bind-mounted at runtime with real content.\n' > "$path"
+    fi
+}
+
+ensure_bind_mount_target_dir() {
+    local path=$1
+
+    ! [[ -L "$path" ]] || \
+	err "$path is a symlink. Remove it manually and re-run"
+    if [[ -e "$path" ]]; then
+	[[ -d "$path" ]] || \
+	    err "$path exists and is not a directory. Remove it manually and re-run"
+    else
+	cmd_log mkdir "$path"
+    fi
+
+    local file="$path/not_empty_dir"
+    if [[ -L "$file" ]] || [[ -e "$file" && ! -f "$file" ]]; then
+       err "$file to keep $path in git exists and is not a plain file." \
+	   "Remove it manually and re-run"
+    fi
+    if [[ ! -s "$file" ]]; then
+	log "creating $file with default content"
+	printf 'This is to keep the directory in git source tree.\n' > $file
+    fi
+}
+
+cmd_log cd "$(dirname "$0")"
+
+ensure_bind_mount_target_file web/fluxbb/config.php
+ensure_bind_mount_target_dir web/fluxbb/img/avatars
+ensure_bind_mount_target_dir web/fluxbb/cache
