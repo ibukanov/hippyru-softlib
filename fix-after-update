@@ -77,3 +77,7 @@ cmd_log cd "$(dirname "$0")"
 ensure_bind_mount_target_file web/fluxbb/config.php
 ensure_bind_mount_target_dir web/fluxbb/img/avatars
 ensure_bind_mount_target_dir web/fluxbb/cache
+
+ensure_bind_mount_target_file web/wordpress/wp-config.php
+ensure_bind_mount_target_dir web/wordpress/wp-upload
+ensure_bind_mount_target_dir web/wordpress/wp-content/add-from-server
