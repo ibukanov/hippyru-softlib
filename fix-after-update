@@ -72,12 +72,33 @@ ensure_bind_mount_target_dir() {
     fi
 }
 
+ensure_symlink() {
+    local target=$1 path=$2
+
+    if [[ -L "$path" ]]; then
+	if [[ "$(readlink "$path")" == "$target" ]]; then
+	    return 0
+	fi
+	cmd_log rm "$path"
+    elif [[ -d "$path" ]]; then
+	[[ -z "$(ls -A "$path")" ]] ||\
+	    err "$path is non-empty directory, remove it manually and re-run"
+	cmd_log rmdir "$path"
+    elif [[ -f "$path" ]]; then
+	cmd_log rm "$path"
+    elif [[ -e "$path" ]]; then
+	err "$path is a socket or other special file, remove it manually and re-run"
+    fi
+    cmd_log ln -s "$target" "$path"
+}
+
+
 cmd_log cd "$(dirname "$0")"
 
 ensure_bind_mount_target_file web/fluxbb/config.php
 ensure_bind_mount_target_dir web/fluxbb/img/avatars
 ensure_bind_mount_target_dir web/fluxbb/cache
 
-ensure_bind_mount_target_file web/wordpress/wp-config.php
-ensure_bind_mount_target_dir web/wordpress/wp-upload
+ensure_bind_mount_target_file web/wordpress/wordpress/wp-config.php
+ensure_bind_mount_target_dir web/wordpress/wordpress/upload
 ensure_bind_mount_target_dir web/wordpress/wp-content/add-from-server
