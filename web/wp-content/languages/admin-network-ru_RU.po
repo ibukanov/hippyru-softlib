@@ -1,0 +1,1 @@
+../../wordpress/wp-content/languages/admin-network-ru_RU.po

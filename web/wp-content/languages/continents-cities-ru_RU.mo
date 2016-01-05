@@ -1,0 +1,1 @@
+../../wordpress/wp-content/languages/continents-cities-ru_RU.mo

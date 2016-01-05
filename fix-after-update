@@ -99,6 +99,7 @@ ensure_bind_mount_target_file web/fluxbb/config.php
 ensure_bind_mount_target_dir web/fluxbb/img/avatars
 ensure_bind_mount_target_dir web/fluxbb/cache
 
-ensure_bind_mount_target_file web/wordpress/wordpress/wp-config.php
-ensure_bind_mount_target_dir web/wordpress/wordpress/upload
-ensure_bind_mount_target_dir web/wordpress/wp-content/add-from-server
+ensure_bind_mount_target_file web/wordpress/wp-config.php
+ensure_bind_mount_target_dir web/wordpress/upload
+ensure_bind_mount_target_dir web/wp-content/add-from-server
+ensure_bind_mount_target_dir web/wp-content/cache

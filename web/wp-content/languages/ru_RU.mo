@@ -1,0 +1,1 @@
+../../wordpress/wp-content/languages/ru_RU.mo
